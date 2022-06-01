@@ -6,6 +6,9 @@
 #define CHANNEL_PORT_SENDER   46342
 #define CHANNEL_PORT_RECEIVER 46343
 
+#define DEFAULT_DNS_SERVER "8.8.8.8"
+#define DEFAULT_DNS_PORT   53
+
 #define STATUS_SUCCESS             0
 #define STATUS_ERR_FILE_READ       1
 #define STATUS_ERR_MALLOC_BUF      2
@@ -17,6 +20,8 @@
 #define STATUS_ERR_SOCK_BIND       8
 #define STATUS_ERR_SOCK_LISTEN     9
 #define STATUS_ERR_SOCK_CONNECT   10
+#define STATUS_ERR_NONEXISTENT    12
+#define STATUS_ERR_BAD_NAME       13
 #define STATUS_SOCK_CLOSED        11
 
 
@@ -26,7 +31,8 @@
 #define MSG_ERR_SOCK_LISTEN    "ERROR: Could not listen on port %d\n"
 #define MSG_ERR_SOCK_BIND      "ERROR: Could not bind to port %d\n"
 #define MSG_SUCCESS_LISTEN     "Listening on port %d\n"
-#define MSG_ENTER_FILENAME     "Enter filename: "
+#define MSG_ENTER_FILENAME     "nsclient> "
+#define MSG_ENTER_HOSTNAME     "nsclient> "
 #define MSG_FILE_LENGTH        "File length: %llu bytes\n"
 #define MSG_TOTAL_SENT         "Total sent:  %llu bytes\n"
 #define MSG_ERR_FILE_READ      "ERROR: Could not read file %s\n"
@@ -35,10 +41,17 @@
 #define MSG_ERR_CORRUPT_SIZE   "ERROR: Corrupt expected transmission size, cannot continue\n"
 #define MSG_ERR_CORRUPT_ADDED  "ERROR: Corrupt number of zeros received, cannot continue\n"
 #define MSG_ERR_BUF_SIZE       "ERROR: Weird buffer size - this should never happen!!!\n"
+#define MSG_ERR_BAD_NAME       "ERROR: BAD NAME\n"
+#define MSG_ERR_NONEXISTENT    "ERROR: NONEXISTENT\n"
 #define MSG_ERR_UNKNOWN        "ERROR: Unhandled error code (%d)\n"
 
 #define MAX_FILE_PATH_LENGTH           32767
-#define MAX_PERMITTED_FILE_PATH_LENGTH 4096
+#define MAX_PERMITTED_FILE_PATH_LENGTH 256
+
+#define MAX_HOSTNAME_LENGTH       256
+#define MAX_HOSTNAME_LENGTH_INPUT MAX_HOSTNAME_LENGTH+10
+
+#define QUIT_COMMAND_STRING "quit"
 
 
 #define SOCKET_BACKLOG 5
