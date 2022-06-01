@@ -60,11 +60,8 @@ int socket_connect(SOCKET* sock, const char* dest, const u_short port) {
     sockaddr.sin_addr.s_addr = inet_addr(dest);
     sockaddr.sin_port = htons(port);
     sockaddr.sin_family = AF_INET;
-    *sock = socket(AF_INET, SOCK_STREAM, 0);
+    *sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     status = connect(*sock, &sockaddr, sizeof(sockaddr));
-    
-    printd("connection with SERVER failed, error %ld\n", WSAGetLastError());
-
     return status;
 }
 
