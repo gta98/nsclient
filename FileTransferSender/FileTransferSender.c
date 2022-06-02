@@ -5,22 +5,24 @@
 
 #include "FileTransferCommon/common.h"
 
+char* remote_addr;// [MAX_DNS_SERVER_ADDR_LENGTH + 1] ;
+
 int socket_send_file(const SOCKET* sock, const char* file_name, uint64_t* file_size, uint64_t* file_total_sent);
 int validateHost(const char* hostname);
 struct hostent* dnsQuery(const char* hostname);
+int fillDnsQueryBuf(const char* hostname, const char* query);
+int parseDnsResponseBuf(const char* response, struct hostent* remoteHost);
+void printRemoteHost(struct hostent* remoteHost);
 
 int main(const int argc, const char *argv[])
 {
-    char*   remote_addr;
     u_short remote_port;
-    SOCKET sock;
     WSADATA wsaData;
     struct hostent* remoteHost;
     int status;
     DWORD dwError;
     int i;
-    struct in_addr addr;
-
+    
     char file_name[MAX_HOSTNAME_LENGTH_INPUT];
     char hostname[MAX_HOSTNAME_LENGTH_INPUT];
     uint64_t file_size, file_total_sent;
@@ -32,6 +34,10 @@ int main(const int argc, const char *argv[])
         printd("         %s DNS_SERVER\n", argv[0]);
         printd("         an invalid number of arguments was specified, so reverting to DNS_SERVER=%s\n", remote_addr);
     }
+    else if (strlen(argv[0]) > MAX_DNS_SERVER_ADDR_LENGTH) {
+        /* Not my problem - fail silently */
+        remote_addr = "-1";
+    }
     else {
         remote_addr = argv[1];
         remote_port = DEFAULT_DNS_PORT; // (u_short)atoi(argv[2]);
@@ -42,33 +48,12 @@ int main(const int argc, const char *argv[])
         return 1;
     }
 
-    printd("Attempting connection to %s:%d\n", remote_addr, remote_port);
-    while (true) {
-        status = socket_connect(&sock, remote_addr, remote_port);
-#if FLAG_IGNORE_SOCKET == 1
-        break;
-#endif
-        if (status == STATUS_SUCCESS) {
-            break;
-        }
-        /*else {
-            printf(MSG_ERR_CONNECTING, status, remote_addr, remote_port);
-        }*/
-    }
-
-    printd("Connected to %s:%d\n", remote_addr, remote_port);
-
-
     while (1) {
         printf(MSG_ENTER_HOSTNAME);
 #if FLAG_SKIP_FILENAME==1
-        strncpy_s(file_name, 100, DEBUG_FILE_PATH, strlen(DEBUG_FILE_PATH));
+        strncpy_s(hostname, 100, DEBUG_HOSTNAME, strlen(DEBUG_HOSTNAME));
 #else
         scanf_s("%s", hostname, MAX_HOSTNAME_LENGTH_INPUT);
-        if (strcmp(hostname, QUIT_COMMAND_STRING) == 0) {
-            closesocket(sock);
-            return 0;
-        }
 #endif
 
         status = validateHost(hostname);
@@ -79,19 +64,7 @@ int main(const int argc, const char *argv[])
 
         remoteHost = dnsQuery(hostname);
 
-        if (remoteHost) {
-            i = 0;
-            if (remoteHost->h_addrtype == AF_INET)
-            {
-                while (remoteHost->h_addr_list[i] != 0) {
-                    addr.s_addr = *(u_long*)remoteHost->h_addr_list[i++];
-                    printf("%s\n", inet_ntoa(addr));
-                }
-            }
-        }
-        else {
-            printf(MSG_ERR_NONEXISTENT);
-        }
+        printRemoteHost(remoteHost);
 
 #if FLAG_SINGLE_ITER==1
         break;
@@ -102,10 +75,51 @@ int main(const int argc, const char *argv[])
 }
 
 struct hostent* dnsQuery(const char* hostname) {
+    int i, j, status;
+    SOCKET sock;
     struct hostent* remoteHost;
+    char query[SIZE_DNS_QUERY_BUF];
+    char response[SIZE_DNS_RESPONSE_BUF];
+
+#if FLAG_IGNORE_SOCKET == 1
     remoteHost = gethostbyname(hostname);
+#else
+    status = socket_connect(&sock, remote_addr, DEFAULT_DNS_PORT);
+    if (status == STATUS_SUCCESS) {
+        return NULL;
+    }
+    remoteHost = NULL;
+
+    fillDnsQueryBuf(hostname, query);
+    
+    status = sendto(sock, query, SIZE_DNS_QUERY_BUF, 0, NULL, 0);
+    if (status != STATUS_SUCCESS) goto dnsQueryFailure;
+    
+    status = recvfrom(sock, response, SIZE_DNS_RESPONSE_BUF, 0, NULL, 0);
+    if (status != STATUS_SUCCESS) goto dnsQueryFailure;
+
+    parseDnsResponseBuf(hostname, response, remoteHost);
+#endif
+
+dnsQueryFinish:
+    if (sock) closesocket(sock);
     return remoteHost;
+
+dnsQueryFailure:
+    remoteHost = NULL;
+    goto dnsQueryFinish;
 }
+
+
+int fillDnsQueryBuf(const char* hostname, const char* query) {
+    return STATUS_ERR_PLACEHOLDER;
+}
+
+
+int parseDnsResponseBuf(const char* response, struct hostent* remoteHost) {
+    return STATUS_ERR_PLACEHOLDER;
+}
+
 
 int validateHost(const char* hostname) {
     int length, i, j, seg_start, seg_end;
@@ -155,98 +169,23 @@ int validateHost(const char* hostname) {
     return STATUS_SUCCESS;
 }
 
-
-int socket_send_file(const SOCKET* sock, const char* file_name, uint64_t* file_size, uint64_t* file_total_sent) {
-    unsigned char buf_send[4], buf_hold[1], buf_encode[4], buf_read[4], buf_send_enc[31];
-    uint8_t buf_raw[26], buf_enc[31];
-    uint8_t buf_enc_tmp[31];
-    uint64_t file_size_left;
-    errno_t err;
-    FILE* fp;
-
-    *file_size = 0;
-    *file_total_sent = 0;
-
-    if (fopen_s(&fp, file_name, "rb") != 0) {
-        return STATUS_ERR_FILE_READ;
-    }
-
-    fseek(fp, 0, SEEK_END);
-    *file_size = ftell(fp); // bytes
-    // first byte will tell us how many bytes were added to the actual data
-    // next 8 bytes will tell us the size of the transmission
-    fseek(fp, 0, SEEK_SET);
-
-    uint64_t bytes_left_to_read = *file_size;
-    uint8_t bytes_missing_for_26 = (26 - ((*file_size) % 26)) % 26;
-    //if (((*file_size) % 26) == 0) bytes_missing_for_26 = 0;
-    //else                          bytes_missing_for_26 = 26 - ((*file_size) % 26);
-    //int bytes_missing_for_26 = (26 - (1+8+(*(file_size)) % 26)) % 26;
-    printd("bytes_missing_for_26=%d\n", bytes_missing_for_26);
-    int total_zeros_added = bytes_missing_for_26;
-    printd("total zeros added: %d\n", total_zeros_added);
-    int buf_size = 26 + ((*file_size) + total_zeros_added);
-
-    // at this point, we know what the transmission size will be
-    // raw=26m bytes = 8*26m bits, so m=raw.bytes/26=buf_size/26, encoded=8*31m bits = 31m bytes
-    //if (floor(buf_size / 26) != ceil(buf_size / 26)) return STATUS_ERR_BUF_SIZE;
-    //assert(floor(buf_size / 26) != ceil(buf_size / 26));
-    uint64_t m = buf_size / 26;
-    uint64_t expected_transmission_size = 31 * m;
-
-    int total_bytes_added_not_sent = expected_transmission_size;
-    uint64_t bytes_not_sent = expected_transmission_size;
-
-    /////////////////
-    // send header
-    /////////////////
-    buf_raw[0] = ((uint64_t)(0xFF)) & ((uint64_t)total_zeros_added);
-    buf_raw[1] = ((uint64_t)(0xFF)) & (expected_transmission_size >> (8 * 7));
-    buf_raw[2] = ((uint64_t)(0xFF)) & (expected_transmission_size >> (8 * 6));
-    for (int i = 9; i < 26; i++) buf_raw[i] = 0;
-    encode_26_block_to_31(buf_enc, buf_raw);
-    safe_send(sock, buf_enc, 31);
-    bytes_not_sent -= 31;
-    m--;
-
-    /////////////////////////////////////////
-    // send everything except the last block
-    //////////\///////////////////////////////
-    printd("raw: \n");
-    while (bytes_left_to_read > 26) {
-        fread(buf_raw, sizeof(uint8_t), 26, fp);
-        bytes_left_to_read -= 26;
-        for (int i = 0; i < 26; i++) printd("%02x ", buf_raw[i]);
-        printd("\n");
-        encode_26_block_to_31(buf_enc, buf_raw);
-        safe_send(sock, buf_enc, 31);
-        (*file_total_sent) += 31;
-        bytes_not_sent -= 31;
-        m--;
-    }
-
-    ///////////////////////////////////////////////////
-    // send the last block padded by zeros from the end
-    ///////////////////////////////////////////////////
-    printd("Entering the danger zone! 26-bytes_missing=%d\n", (uint8_t)26 - bytes_missing_for_26);
-    if (bytes_left_to_read > 0) {
-        //fread(buf_raw, sizeof(uint8_t), bytes_left_to_read, fp);
-        for (int i = 0; i < bytes_left_to_read; i++) {
-            fread(buf_hold, sizeof(uint8_t), 1, fp);
-            buf_raw[i] = buf_hold[0];
+void printRemoteHost(struct hostent* remoteHost) {
+    struct in_addr addr;
+    int i;
+    i = 0;
+    if (remoteHost) {
+        if (remoteHost->h_addrtype == AF_INET)
+        {
+            while (remoteHost->h_addr_list[i] != 0) {
+                addr.s_addr = *(u_long*)remoteHost->h_addr_list[i++];
+                printf("%s\n", inet_ntoa(addr));
+                break;
+            }
         }
-        for (int i = (26 - bytes_missing_for_26); i < 26; i++) buf_raw[i] = 0;
-        for (int i = 0; i < 26; i++) printd("%02x ", buf_raw[i]);
-        printd("\n");
-        encode_26_block_to_31(buf_enc, buf_raw);
-        safe_send(sock, buf_enc, 31);
-        (*file_total_sent) += 31;
-        bytes_not_sent -= 31;
-        m--;
+        return;
     }
-    printd("\n");
-    printd("closed\n");
 
-    fclose(fp);
-    return 0;
+    if ((!remoteHost) || (i == 0)) {
+        printf(MSG_ERR_NONEXISTENT);
+    }
 }
