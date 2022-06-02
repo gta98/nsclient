@@ -7,6 +7,6 @@ SOCKET sock;
 
 int validateHost(const char* hostname);
 struct hostent* dnsQuery(const char* hostname);
-int createDnsQueryBuf(const char* hostname, const char* query);
-int parseDnsResponseBuf(const char* response, struct hostent* remoteHost);
+char* createDnsQueryBuf(const char* hostname);
+struct hostent* parseDnsResponseBuf(const char* response);
 void printRemoteHost(struct hostent* remoteHost);
