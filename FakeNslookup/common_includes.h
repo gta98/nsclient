@@ -10,6 +10,7 @@
 #include <math.h>
 #include <stdint.h>
 #include <winsock2.h>
+#include <assert.h>
 
 
 #include "common_types.h"
