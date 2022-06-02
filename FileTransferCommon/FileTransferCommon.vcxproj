@@ -143,6 +143,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="socket_utils.c" />
+	<ClCompile Include="dns_utils.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common_constants.h" />
@@ -151,6 +152,8 @@
     <ClInclude Include="common_types.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="socket_utils.h" />
+	<ClInclude Include="dns_utils.h" />
+
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
