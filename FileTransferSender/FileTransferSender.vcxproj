@@ -146,12 +146,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="dns_utils.c" />
     <ClCompile Include="FileTransferSender.c" />
+    <ClCompile Include="socket_utils.c" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FileTransferCommon\FileTransferCommon.vcxproj">
-      <Project>{d76b832d-afff-4af9-8762-6d20ec032797}</Project>
-    </ProjectReference>
+    <ClInclude Include="common.h" />
+    <ClInclude Include="common_constants.h" />
+    <ClInclude Include="common_debug.h" />
+    <ClInclude Include="common_includes.h" />
+    <ClInclude Include="common_types.h" />
+    <ClInclude Include="dns_utils.h" />
+    <ClInclude Include="socket_utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

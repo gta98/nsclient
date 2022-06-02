@@ -3,7 +3,7 @@
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
-#include "FileTransferCommon/common.h"
+#include "common.h"
 
 //char* remote_addr;// [MAX_DNS_SERVER_ADDR_LENGTH + 1] ;
 SOCKET sock;
