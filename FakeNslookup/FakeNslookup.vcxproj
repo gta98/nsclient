@@ -22,7 +22,7 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{61decb6e-97b5-4fbd-b6e1-50cbbea4d758}</ProjectGuid>
-    <RootNamespace>FileTransferSender</RootNamespace>
+    <RootNamespace>FakeNslookup</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -147,7 +147,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dns_utils.c" />
-    <ClCompile Include="FileTransferSender.c" />
+    <ClCompile Include="main.c" />
     <ClCompile Include="socket_utils.c" />
   </ItemGroup>
   <ItemGroup>

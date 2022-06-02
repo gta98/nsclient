@@ -1,11 +1,10 @@
-// FileTransferSender.c : This file contains the 'main' function. Program execution begins and ends there.
+// main.c : This file contains the 'main' function. Program execution begins and ends there.
 //
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #include "common.h"
 
-//char* remote_addr;// [MAX_DNS_SERVER_ADDR_LENGTH + 1] ;
 SOCKET sock;
 
 int main(const int argc, const char *argv[])
