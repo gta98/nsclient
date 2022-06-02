@@ -3,51 +3,55 @@
 struct hostent* dnsQuery(const char* hostname) {
     struct hostent* remoteHost;
     int i, j, status;
-    char query[SIZE_DNS_QUERY_BUF];
-    char response[SIZE_DNS_RESPONSE_BUF];
+    char* query;
+    char* response;
     int sizeof_query, sizeof_response;
 
     sock = NULL;
     remoteHost = NULL;
+    query = NULL;
+    response = NULL;
 
 #if FLAG_IGNORE_SOCKET == 1
     remoteHost = gethostbyname(hostname);
 #else
-    status = createDnsQueryBuf(hostname, query);
-    if (status != STATUS_SUCCESS) {
-        printd("Could not create DNS query buffer - status %d\n", status);
+    query = createDnsQueryBuf(hostname);
+    if (!query) {
+        printd("Could not create DNS query buffer!\n");
         goto dnsQueryFailure;
     }
 
-    sizeof_query = strlen(query); /* note: must be terminated by 0 */
+    sizeof_query = strlen(query);
     status = sendto(sock, query, sizeof_query, 0, NULL, 0);
     if (status == SOCKET_ERROR) {
         printd("Could not send query to DNS server = status %d\n", status);
         goto dnsQueryFailure;
     }
 
-    sizeof_response = sizeof(response); /* longest permitted response */
+    sizeof_response = SIZE_DNS_RESPONSE_BUF;
+    response = malloc(sizeof_response+1);
+    if (!response) {
+        printd("Could not allocate DNS response buffer!\n");
+        goto dnsQueryFailure;
+    }
     status = recvfrom(sock, response, sizeof_response, 0, NULL, 0);
     if (status == SOCKET_ERROR) {
         printd("Failure in receiving response from DNS server - status %d\n", status);
         goto dnsQueryFailure;
     }
     sizeof_response = status; /* actual response size */
+    response[sizeof_response] = 0;
 
-    remoteHost = malloc(sizeof(struct hostent));
+    remoteHost = parseDnsResponseBuf(response);
     if (!remoteHost) {
-        printd("Failure malloc'ing remoteHost!\n");
-        goto dnsQueryFailure;
-    }
-
-    status = parseDnsResponseBuf(response, remoteHost);
-    if (status != STATUS_SUCCESS) {
-        printd("Failure in parsing response from DNS server - status %d\n", status);
+        printd("Failure in parsing response from DNS server!\n");
         goto dnsQueryFailure;
     }
 #endif
 
 dnsQueryFinish:
+    if (query) free(query);
+    if (response) free(response);
     return remoteHost;
 
 dnsQueryFailure:
@@ -59,38 +63,44 @@ dnsQueryFailure:
 }
 
 
-int createDnsQueryBuf(const char* hostname, char query[]) {
+char* createDnsQueryBuf(const char* hostname) {
     /*
     * INPUT: "hostname": e.g. "google.com", "www.ynet.co.il"
-    * INPUT: "query[]": already allocated, with sizeof SIZE_DNS_QUERY_BUF
-    * OUTPUT: "query[]":
+    * RETURN: "query[]":
     *         This string is sent to the DNS server
     *         It contains the request "give me the IP address for <hostname>"
-    * RETURN: STATUS_SUCCESS or STATUS_ERR_*
     */
+    char* query;
     int i, j;
+    int sizeof_query;
 
-    for (i = 0; i < SIZE_DNS_QUERY_BUF; i++) query[i] = 0;
+    sizeof_query = SIZE_DNS_QUERY_BUF; /* FIXME - what do we need to reduce sizeof_query to? */
+    query = malloc(sizeof_query+1);
+    if (!query) return NULL;
+    for (i = 0; i < sizeof_query+1; i++) query[i] = 0;
 
-    /* FIXME: Implement here */
+    /* FIXME: Implement here - fill query[0 to sizeof_query] based on hostname */
 
-    return STATUS_ERR_NOT_IMPLEMENTED;
+    return query;
 }
 
 
-int parseDnsResponseBuf(const char response[], const int sizeof_response, struct hostent* remoteHost) {
+struct hostent* parseDnsResponseBuf(const char* response) {
     /*
-    * INPUT: "response[]": fetched from DNS server through recvfrom()
-    * INPUT: "sizeof_response": size of actual contents of response[], returned by recvfrom
-    * INPUT: "remoteHost": pointer to hostent object, which we would write into
-    * OUTPUT: "remoteHost"
-    * RETURN: STATUS_SUCCESS or STATUS_ERR_*
+    * INPUT: "response": fetched from DNS server through recvfrom()
+    * RETURN: hostent object with returned IP
     */
+    struct hostent* remoteHost;
+    int sizeof_response;
     int i, j;
+    
+    remoteHost = malloc(sizeof(struct hostent));
+    if (!remoteHost) return NULL;
+    sizeof_response = strlen(response);
 
-    /* FIXME: Needs implementation */
+    /* FIXME: Implement here - fill remoteHost based on DNS response */
 
-    return STATUS_ERR_NOT_IMPLEMENTED;
+    return remoteHost;
 }
 
 
