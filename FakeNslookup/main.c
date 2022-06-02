@@ -13,12 +13,10 @@ int main(const int argc, const char *argv[])
     char* remote_addr;
     struct hostent* remoteHost;
     int status;
-    DWORD dwError;
     int i;
     
     char hostname[MAX_HOSTNAME_LENGTH_INPUT];
-    uint64_t file_size, file_total_sent;
-
+    
     sock = NULL;
 
     if (argc != 2) {
@@ -55,6 +53,9 @@ int main(const int argc, const char *argv[])
 #else
         scanf_s("%s", hostname, MAX_HOSTNAME_LENGTH_INPUT);
 #endif
+        
+        /* FIXME - hostname=hostname.lowerCase() */
+        /* FIXME - is hostname zero-terminated? */
 
         if (!strcmp(hostname, QUIT_COMMAND_STRING)) {
             break;
