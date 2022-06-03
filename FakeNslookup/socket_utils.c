@@ -15,7 +15,6 @@ int socket_connect(SOCKET* sock, const char* dest, const u_short port) {
 
     status = connect(*sock, &sockaddr, sizeof(sockaddr));
     timeout_ms = SOCKET_RECV_TIMEOUT_MS;
-    /* FIXME - need to add 2s timeout */
-    //setsockopt(*sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout_ms, sizeof(timeout_ms));
+    setsockopt(*sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout_ms, sizeof(timeout_ms));
     return status;
 }
