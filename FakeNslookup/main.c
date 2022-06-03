@@ -51,11 +51,11 @@ int main(const int argc, const char *argv[])
 #if FLAG_SKIP_FILENAME==1
         strncpy_s(hostname, 100, DEBUG_HOSTNAME, strlen(DEBUG_HOSTNAME));
 #else
-        scanf_s("%s", hostname, MAX_HOSTNAME_LENGTH_INPUT);
+        status = scanf_s("%s", hostname, MAX_HOSTNAME_LENGTH_INPUT);
+        hostname[MAX_HOSTNAME_LENGTH_INPUT - 1] = 0;
+        for (i = 0; hostname[i]; i++)
+            hostname[i] = tolower(hostname[i]);
 #endif
-        
-        /* FIXME - hostname=hostname.lowerCase() */
-        /* FIXME - is hostname zero-terminated? */
 
         if (!strcmp(hostname, QUIT_COMMAND_STRING)) {
             break;

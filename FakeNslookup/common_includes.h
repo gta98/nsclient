@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <winsock2.h>
 #include <assert.h>
+#include <ctype.h>
 
 
 #include "common_types.h"
