@@ -1,5 +1,6 @@
 #include "dns_utils.h"
 
+
 struct hostent* dnsQuery(const char* hostname) {
     struct hostent* remoteHost;
     int i, j, status;
