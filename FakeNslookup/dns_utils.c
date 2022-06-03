@@ -8,6 +8,11 @@ struct hostent* dnsQuery(const char* hostname) {
     char* response;
     size_t sizeof_query, sizeof_response;
 
+#if FLAG_DEBUG == 1
+    struct hostent* remoteHostDebug;
+    remoteHostDebug = gethostbyname(hostname);
+#endif
+
     remoteHost = NULL;
     query = NULL;
     response = NULL;
@@ -20,9 +25,9 @@ struct hostent* dnsQuery(const char* hostname) {
         printd("Could not create DNS query buffer!\n");
         goto dnsQueryFailure;
     }
-
     sizeof_query = strlen(query);
     assert(sizeof_query > 0);
+
     status = sendto(sock, query, sizeof_query, 0, NULL, 0);
     if (status == SOCKET_ERROR) {
         printd("Could not send query to DNS server due to socket error\n");
@@ -30,7 +35,7 @@ struct hostent* dnsQuery(const char* hostname) {
     }
 
     sizeof_response = SIZE_DNS_RESPONSE_BUF;
-    response = malloc(sizeof(char)*(sizeof_response+1));
+    response = malloc(sizeof(char) * (sizeof_response + 1));
     if (!response) {
         printd("Could not allocate DNS response buffer!\n");
         goto dnsQueryFailure;
@@ -53,6 +58,25 @@ struct hostent* dnsQuery(const char* hostname) {
 dnsQueryFinish:
     if (query) free(query);
     if (response) free(response);
+
+#if FLAG_DEBUG==1
+    if (remoteHostDebug != NULL) assert(remoteHost != NULL);
+    if (remoteHost != NULL) assert(remoteHostDebug != NULL);
+    if (remoteHost && remoteHostDebug) {
+        assert(strcmp(remoteHost->h_name, remoteHostDebug->h_name) == 0);
+        assert(remoteHost->h_length == remoteHostDebug->h_length);
+        assert(remoteHost->h_addrtype == remoteHostDebug->h_addrtype);
+        for (i = 0; (remoteHost->h_addr_list[i] || remoteHostDebug->h_addr_list[i]); i++) {
+            assert(remoteHost->h_addr_list[i] && remoteHostDebug->h_addr_list[i]);
+            assert(strcmp(remoteHost->h_addr_list[i], remoteHostDebug->h_addr_list[i]) == 0);
+        }
+        for (i = 0; (remoteHost->h_aliases[i] || remoteHostDebug->h_aliases[i]); i++) {
+            assert(remoteHost->h_aliases[i] && remoteHostDebug->h_aliases[i]);
+            assert(strcmp(remoteHost->h_aliases[i], remoteHostDebug->h_aliases[i]) == 0);
+        }
+    }
+#endif
+
     return remoteHost;
 
 dnsQueryFailure:
