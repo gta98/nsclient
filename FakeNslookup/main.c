@@ -2,7 +2,6 @@
 //
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-
 #include "common.h"
 
 
