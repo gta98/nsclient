@@ -75,12 +75,12 @@ char* createDnsQueryBuf(const char* hostname) {
     int i, j;
     int sizeof_query;
 
-    sizeof_query = SIZE_DNS_QUERY_BUF; /* FIXME - what do we need to reduce sizeof_query to? */
+    sizeof_query = SIZE_DNS_QUERY_BUF; /* FIXME: Tom - what do we need to reduce sizeof_query to? */
     query = malloc(sizeof(char)*(sizeof_query+1));
     if (!query) return NULL;
     for (i = 0; i < sizeof_query+1; i++) query[i] = 0;
 
-    /* FIXME: Implement here - fill query[0 to sizeof_query] based on hostname */
+    /* FIXME: Tom - Implement here - fill query[0 to sizeof_query] based on hostname */
 
     return query;
 }
@@ -99,7 +99,7 @@ struct hostent* parseDnsResponseBuf(const char* response) {
     if (!remoteHost) return NULL;
     sizeof_response = strlen(response);
 
-    /* FIXME: Implement here - fill remoteHost based on DNS response */
+    /* FIXME: Tom - Implement here - fill remoteHost based on DNS response */
 
     return remoteHost;
 }
