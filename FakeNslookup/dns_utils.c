@@ -166,3 +166,29 @@ void printRemoteHost(struct hostent* remoteHost) {
         printf(MSG_ERR_NONEXISTENT);
     }
 }
+
+void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname) {
+#if FLAG_DEBUG == 1
+    int i;
+    struct hostent* remoteHostDebug;
+
+    remoteHostDebug = gethostbyname(hostname);
+    if (remoteHostDebug != NULL) assert(remoteHost != NULL);
+    if (remoteHost != NULL) assert(remoteHostDebug != NULL);
+    if (remoteHost && remoteHostDebug) {
+        assert(strcmp(remoteHost->h_name, remoteHostDebug->h_name) == 0);
+        assert(remoteHost->h_length == remoteHostDebug->h_length);
+        assert(remoteHost->h_addrtype == remoteHostDebug->h_addrtype);
+        for (i = 0; (remoteHost->h_addr_list[i] || remoteHostDebug->h_addr_list[i]); i++) {
+            assert(remoteHost->h_addr_list[i] && remoteHostDebug->h_addr_list[i]);
+            assert(strcmp(remoteHost->h_addr_list[i], remoteHostDebug->h_addr_list[i]) == 0);
+        }
+        for (i = 0; (remoteHost->h_aliases[i] || remoteHostDebug->h_aliases[i]); i++) {
+            assert(remoteHost->h_aliases[i] && remoteHostDebug->h_aliases[i]);
+            assert(strcmp(remoteHost->h_aliases[i], remoteHostDebug->h_aliases[i]) == 0);
+        }
+    }
+#else
+    return;
+#endif
+}
