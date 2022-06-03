@@ -5,20 +5,16 @@
 
 #include "common.h"
 
-SOCKET sock;
-
 
 int main(const int argc, const char *argv[])
 {
     WSADATA wsaData;
-    char* remote_addr;
+    const char* remote_addr;
     struct hostent* remoteHost;
     int status;
     int i;
     
     char hostname[MAX_HOSTNAME_LENGTH_INPUT];
-    
-    sock = NULL;
 
     if (argc != 2) {
         remote_addr = DEFAULT_DNS_SERVER;
@@ -34,6 +30,8 @@ int main(const int argc, const char *argv[])
     else {
         remote_addr = argv[1];
     }
+
+    printd("Using DNS server %s\n", remote_addr);
 
     status = socket_initialize(&wsaData);
     if (status != NO_ERROR) {

@@ -10,4 +10,4 @@ struct hostent* dnsQuery(const char* hostname);
 char* createDnsQueryBuf(const char* hostname);
 struct hostent* parseDnsResponseBuf(const char* response);
 void printRemoteHost(struct hostent* remoteHost);
-void assertDnsQueryResultIsValid(struct hostent* remoteHost, const char* hostname);
+void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname);
