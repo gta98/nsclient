@@ -23,19 +23,19 @@ struct hostent* dnsQuery(const char* hostname) {
     sizeof_query = strlen(query);
     assert(sizeof_query > 0);
 
-    status = sendto(sock, query, sizeof_query, 0, NULL, 0);
+    status = sendto(sock, query, (int)sizeof_query, 0, NULL, 0);
     if (status == SOCKET_ERROR) {
         printd("Could not send query to DNS server due to socket error\n");
         goto dnsQueryFailure;
     }
 
     sizeof_response = SIZE_DNS_RESPONSE_BUF;
-    response = malloc(sizeof(char) * (sizeof_response + 1));
+    response = malloc(sizeof(char) * ((size_t)sizeof_response + (size_t)1));
     if (!response) {
         printd("Could not allocate DNS response buffer!\n");
         goto dnsQueryFailure;
     }
-    status = recvfrom(sock, response, sizeof_response, 0, NULL, 0);
+    status = recvfrom(sock, response, (int)sizeof_response, 0, NULL, 0);
     if (status == SOCKET_ERROR) {
         printd("Failure in receiving response from DNS server - status %d\n", status);
         goto dnsQueryFailure;
@@ -76,7 +76,7 @@ char* createDnsQueryBuf(const char* hostname) {
     int sizeof_query;
 
     sizeof_query = SIZE_DNS_QUERY_BUF; /* FIXME: Tom - what do we need to reduce sizeof_query to? */
-    query = malloc(sizeof(char)*(sizeof_query+1));
+    query = malloc(sizeof(char)*((size_t)sizeof_query+(size_t)1));
     if (!query) return NULL;
     for (i = 0; i < sizeof_query+1; i++) query[i] = 0;
 
@@ -92,7 +92,7 @@ struct hostent* parseDnsResponseBuf(const char* response) {
     * RETURN: hostent object with returned IP
     */
     struct hostent* remoteHost;
-    int sizeof_response;
+    size_t sizeof_response;
     int i, j;
     
     remoteHost = malloc(sizeof(struct hostent));
