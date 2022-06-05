@@ -3,11 +3,10 @@
 
 struct hostent* dnsQuery(const char* hostname) {
     struct hostent* remoteHost;
-    int i, j, status;
+    int i, status;
     unsigned char* query;
     unsigned char* response;
-    size_t sizeof_response;
-    size_t* p_sizeof_query, sizeof_query;
+    size_t sizeof_query, sizeof_response;
 
     remoteHost = NULL;
     query = NULL;
@@ -90,11 +89,10 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
     *         It contains the request "give me the IP address for <hostname>"
     */
     char* buf;
-    size_t sizeof_qname;
     dns_header_t *dns;
-    question_t *ques;
-    question_t *qinf_struct;
-    unsigned char *qname, *qinf; //TODO - maybe change size
+    size_t sizeof_qname;
+    char* qname;
+    question_t *qinf;
 
     *sizeof_query = sizeof(dns_header_t) + (sizeof(char) * 1024) + sizeof(question_t); // FIXME - set constant SIZE_DNS_QUERY_BUF;
     buf = NULL;
@@ -104,7 +102,7 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
     }
 
     dns = (dns_header_t*)(buf + 0);
-    dns->id = (unsigned short)htons(getpid());
+    dns->id = (unsigned short)htons(1);
     dns->qr = 0;
     dns->opcode = 0;
     dns->aa = 0;
@@ -120,34 +118,36 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
     dns->auth_count = 0;
     dns->add_count = 0;
 
-    qname = (unsigned char*) (buf + sizeof(dns_header_t));
+    qname = (char*) (buf + sizeof(dns_header_t));
     sizeof_qname = (sizeof(char))*change_question_name(hostname, qname);
     *sizeof_query = (*sizeof_query) - (sizeof(char) * 1024) + sizeof_qname;
 
-    qinf_struct = (question_t*)(buf + sizeof(dns_header_t) + sizeof_qname);
-    qinf_struct->qtype = htons(1);
-    qinf_struct->qclass = htons(1);
+    qinf = (question_t*)(buf + sizeof(dns_header_t) + sizeof_qname);
+    qinf->qtype = htons(1);
+    qinf->qclass = htons(1);
 
-    printf("Final size is %zu\n", *sizeof_query);
+    printd("Final size is %zu\n", *sizeof_query);
 
     return buf;
 
 }
 
-int change_question_name(const unsigned char* hostname, unsigned char* dst) {
-    int i, j, count_dots, len_original, len_new, seg_start, seg_end;
-    int dst_counter;
-    int seg_len;
+size_t change_question_name(const unsigned char* _hostname, unsigned char* dst) {
+    int i, j;
+    size_t len_original, seg_len, dst_counter;
     char* token;
+    char* hostname;
 
-    len_original = strlen(hostname);
+    len_original = strlen(_hostname);
+    hostname = _strdup(_hostname);
+    if (!hostname) return 0;
     dst_counter = 0;
     token = strtok(hostname, ".");
     while (token != NULL) {
         seg_len = strlen(token);
         assert((1 <= seg_len) && (seg_len <= 63)); /* Already verified earlier */
         dst[dst_counter] = (unsigned char) seg_len;
-        dst_counter += 1;
+        dst_counter += sizeof(char);
         for (j = 0; j < seg_len; j++)
             dst[dst_counter+j] = token[j];
         dst_counter += seg_len;
@@ -161,6 +161,8 @@ int change_question_name(const unsigned char* hostname, unsigned char* dst) {
         printd("0x%02x,", dst[i]);
     }
     printd("0x%02x])", dst[dst_counter - 1]);
+
+    free(hostname);
 
     return dst_counter;
 }
@@ -183,7 +185,7 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
 }
 
 
-int validateHost(const unsigned char* hostname) {
+int validateHost(const unsigned char* _hostname) {
     /*
     * INPUT: hostname
     * RETURN: STATUS_SUCCESS if hostname is valid, STATUS_ERR_BAD_NAME otherwise
@@ -203,12 +205,12 @@ int validateHost(const unsigned char* hostname) {
     *              upper case and a through z in lower case
     * <digit> ::= any one of the ten digits 0 through 9
     */
-    int i, j, seg_start, seg_end;
-    int label_length;
+    int i;
     char* label;
-    size_t length;
+    char* hostname;
+    size_t label_length, length;
 
-    length = strlen(hostname);
+    length = strlen(_hostname);
 
     if ((length == 0) || (length > 255)) {
         /* RFC 1035 states:
@@ -217,6 +219,12 @@ int validateHost(const unsigned char* hostname) {
         */
         return STATUS_ERR_BAD_NAME;
     }
+
+    hostname = malloc(length+sizeof(char));
+    if (!hostname) return STATUS_ERR_MALLOC_BUF;
+
+    for (i = 0; _hostname[i]; i++) hostname[i] = _hostname[i];
+    hostname[length] = 0;
 
     label = strtok(hostname, ".");
     while (label) {
@@ -246,6 +254,8 @@ int validateHost(const unsigned char* hostname) {
         }
         label = strtok(NULL, ".");
     }
+
+    free(hostname);
 
     return STATUS_SUCCESS;
 }
