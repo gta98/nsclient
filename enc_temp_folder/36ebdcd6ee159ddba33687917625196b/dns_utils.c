@@ -135,10 +135,6 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
 
 }
 
-int read_name(const unsigned char* hostname, unsigned char* dst) {
-
-}
-
 int change_question_name(const unsigned char* hostname, unsigned char* dst) {
     int i, j, count_dots, len_original, len_new, seg_start, seg_end;
     int dst_counter;
