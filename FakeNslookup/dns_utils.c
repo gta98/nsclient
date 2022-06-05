@@ -90,7 +90,6 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
     *         It contains the request "give me the IP address for <hostname>"
     */
     char* buf;
-//    int sizeof_query;
     size_t sizeof_qname;
     dns_header_t *dns;
     question_t *ques;
@@ -133,11 +132,6 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
 
     return buf;
 
-}
-
-int read_name(const unsigned char* dns_hostname, unsigned char* real_hostname) {
-    // FIXME - todo
-    return 0;
 }
 
 int change_question_name(const unsigned char* hostname, unsigned char* dst) {
