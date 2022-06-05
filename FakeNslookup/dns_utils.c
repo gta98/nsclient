@@ -58,7 +58,7 @@ struct hostent* dnsQuery(const char* hostname) {
     printd("0x%02x", response[sizeof_response - 1]);
     printd("])\n");
     printd("About to parse remoteHost from response\n");
-    remoteHost = parseDnsResponseBuf(response);
+    remoteHost = parseDnsResponseBuf(response, sizeof_response);
     if (!remoteHost) {
         printd("Failure in parsing response from DNS server!\n");
         goto dnsQueryFailure;
@@ -135,8 +135,9 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
 
 }
 
-int read_name(const unsigned char* hostname, unsigned char* dst) {
-
+int read_name(const unsigned char* dns_hostname, unsigned char* real_hostname) {
+    // FIXME - todo
+    return 0;
 }
 
 int change_question_name(const unsigned char* hostname, unsigned char* dst) {
@@ -170,61 +171,17 @@ int change_question_name(const unsigned char* hostname, unsigned char* dst) {
     return dst_counter;
 }
 
-/*int change_question_name(const char* hostname, unsigned char* qname)
-{
-    int i, j;
-    int sizeof_qname;
-    int count;
-    char* temp;
 
-    j = 0;
-    count = 0;
-    temp = NULL;
-    sizeof_qname = strlen(hostname) + 1; //FIXME: Tom - what do we need to reduce sizeof_query to?
-    temp = malloc(sizeof(char) * sizeof_qname); //TODO - free allocation
-
-
-    for (i = 0; i < sizeof_qname + 1; i++) {
-        if (hostname[i] == '.' || hostname[i] == '\0')
-        {
-            int l = 0;
-            sprintf(temp, "%d", count);
-            if (strlen(temp) > 9) realloc(qname, sizeof_qname + strlen(temp));
-            while (temp[l] != '\0') {
-                qname[j] = temp[l];
-                j++;
-                l++;
-            }
-            for (int k = i - count; k < i; k++)
-            {
-                if (isupper(hostname[k])) {
-                    qname[j] = tolower(hostname[k]); continue;
-                }
-                qname[j] = hostname[k];
-                j++;
-            }
-            count = -1;
-        }
-        count++;
-    }
-    qname[j] = '\0';
-    return j;
-    free(temp);
-}*/
-
-
-struct hostent* parseDnsResponseBuf(const char* response) {
+struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response) {
     /*
     * INPUT: "response": fetched from DNS server through recvfrom()
     * RETURN: hostent object with returned IP
     */
     struct hostent* remoteHost;
-    size_t sizeof_response;
     int i, j;
     
     remoteHost = malloc(sizeof(struct hostent));
     if (!remoteHost) return NULL;
-    sizeof_response = strlen(response);
 
     /* FIXME: Tom - Implement here - fill remoteHost based on DNS response */
 
