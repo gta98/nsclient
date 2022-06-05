@@ -21,7 +21,8 @@ bool is_let_dig(const unsigned char c) {
 }
 
 bool str_check_all(const unsigned char* s, bool (*is_char_condition)(const unsigned char c)) {
-	int i, len;
+	int i;
+	size_t len;
 	len = strlen(s);
 	for (i = 0; i < len; i++) {
 		if (!is_char_condition(s[i])) return false;

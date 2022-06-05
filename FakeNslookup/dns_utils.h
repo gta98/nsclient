@@ -5,6 +5,16 @@
 #include "common_includes.h"
 #include "common_utils.h"
 
+SOCKET sock;
+
+size_t change_question_name(const unsigned char* hostname, unsigned char* qname);
+int validateHost(const unsigned char* hostname);
+struct hostent* dnsQuery(const char* hostname);
+char* createDnsQueryBuf(const char* hostname, size_t* p_sizeof_query);
+struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response);
+void printRemoteHost(struct hostent* remoteHost);
+void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname);
+
 typedef struct DnsHeader {
     unsigned short id;
 
@@ -37,14 +47,3 @@ typedef struct Query {
     unsigned char* name;
     struct question* ques;
 } query_t;
-
-
-SOCKET sock;
-
-int change_question_name(const unsigned char* hostname, unsigned char* qname);
-int validateHost(const unsigned char* hostname);
-struct hostent* dnsQuery(const char* hostname);
-char* createDnsQueryBuf(const char* hostname, size_t* p_sizeof_query);
-struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response);
-void printRemoteHost(struct hostent* remoteHost);
-void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname);
