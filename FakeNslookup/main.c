@@ -46,8 +46,9 @@ int main(const int argc, const char *argv[])
 
     while (1) {
         printf(MSG_ENTER_HOSTNAME);
-#if FLAG_SKIP_FILENAME==1
+#if FLAG_SKIP_HOSTNAME==1
         strncpy_s(hostname, 100, DEBUG_HOSTNAME, strlen(DEBUG_HOSTNAME));
+        printf("%s\n", DEBUG_HOSTNAME);
 #else
         status = scanf_s("%s", hostname, MAX_HOSTNAME_LENGTH_INPUT);
         hostname[MAX_HOSTNAME_LENGTH_INPUT - 1] = 0;
@@ -72,7 +73,7 @@ int main(const int argc, const char *argv[])
 
         if (remoteHost) free(remoteHost);
 
-#if FLAG_SINGLE_ITER==1
+#if FLAG_SKIP_HOSTNAME==1
         break;
 #endif
     }
