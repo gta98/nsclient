@@ -2,6 +2,10 @@
 
 
 struct hostent* dnsQuery(const char* hostname) {
+    /*
+    * INPUT: "hostname": e.g. "google.com", "www.ynet.co.il"
+    * RETURN: a hostent object == gethostbyname(hostname)
+    */
     struct hostent* remoteHost;
     int i, status;
     unsigned char* query;
@@ -13,7 +17,7 @@ struct hostent* dnsQuery(const char* hostname) {
     response = NULL;
     sizeof_query = 0;
 
-#if FLAG_IGNORE_SOCKET == 1
+#if FLAG_REAL_NSLOOKUP == 1
     remoteHost = gethostbyname(hostname);
 #else
 
@@ -22,7 +26,7 @@ struct hostent* dnsQuery(const char* hostname) {
         printd("Could not create DNS query buffer!\n");
         goto dnsQueryFailure;
     }
-    assert(sizeof_query > 0);
+    assertd(sizeof_query > 0);
     printd("Printing query:\n");
     printd("bytes([");
     for (i = 0; i < sizeof_query-1; i++)
@@ -133,6 +137,11 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
 }
 
 size_t change_question_name(const unsigned char* _hostname, unsigned char* dst) {
+    /*
+    * INPUT: "_hostname": e.g. "www.abcd.com"
+    * OUTPUT: "dst": e.g. [0x3,"www",0x4,"abcd",0x3,"com",0x0]
+    * RETURN: size of dst written
+    */
     int i, j;
     size_t len_original, seg_len, dst_counter;
     char* token;
@@ -145,7 +154,7 @@ size_t change_question_name(const unsigned char* _hostname, unsigned char* dst) 
     token = strtok(hostname, ".");
     while (token != NULL) {
         seg_len = strlen(token);
-        assert((1 <= seg_len) && (seg_len <= 63)); /* Already verified earlier */
+        assertd((1 <= seg_len) && (seg_len <= 63)); /* Already verified earlier */
         dst[dst_counter] = (unsigned char) seg_len;
         dst_counter += sizeof(char);
         for (j = 0; j < seg_len; j++)
@@ -279,19 +288,19 @@ void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* h
     struct hostent* remoteHostDebug;
 
     remoteHostDebug = gethostbyname(hostname);
-    if (remoteHostDebug != NULL) assert(remoteHost != NULL);
-    if (remoteHost != NULL) assert(remoteHostDebug != NULL);
+    if (remoteHostDebug != NULL) assertd(remoteHost != NULL);
+    if (remoteHost != NULL) assertd(remoteHostDebug != NULL);
     if (remoteHost && remoteHostDebug) {
-        assert(strcmp(remoteHost->h_name, remoteHostDebug->h_name) == 0);
-        assert(remoteHost->h_length == remoteHostDebug->h_length);
-        assert(remoteHost->h_addrtype == remoteHostDebug->h_addrtype);
+        assertd(strcmp(remoteHost->h_name, remoteHostDebug->h_name) == 0);
+        assertd(remoteHost->h_length == remoteHostDebug->h_length);
+        assertd(remoteHost->h_addrtype == remoteHostDebug->h_addrtype);
         for (i = 0; (remoteHost->h_addr_list[i] || remoteHostDebug->h_addr_list[i]); i++) {
-            assert(remoteHost->h_addr_list[i] && remoteHostDebug->h_addr_list[i]);
-            assert(strcmp(remoteHost->h_addr_list[i], remoteHostDebug->h_addr_list[i]) == 0);
+            assertd(remoteHost->h_addr_list[i] && remoteHostDebug->h_addr_list[i]);
+            assertd(strcmp(remoteHost->h_addr_list[i], remoteHostDebug->h_addr_list[i]) == 0);
         }
         for (i = 0; (remoteHost->h_aliases[i] || remoteHostDebug->h_aliases[i]); i++) {
-            assert(remoteHost->h_aliases[i] && remoteHostDebug->h_aliases[i]);
-            assert(strcmp(remoteHost->h_aliases[i], remoteHostDebug->h_aliases[i]) == 0);
+            assertd(remoteHost->h_aliases[i] && remoteHostDebug->h_aliases[i]);
+            assertd(strcmp(remoteHost->h_aliases[i], remoteHostDebug->h_aliases[i]) == 0);
         }
     }
 #else

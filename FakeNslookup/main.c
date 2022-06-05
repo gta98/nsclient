@@ -15,6 +15,7 @@ int main(const int argc, const char *argv[])
     
     char hostname[MAX_HOSTNAME_LENGTH_INPUT];
 
+#if FLAG_REVERT_DNS_IF_INVALID == 1
     if (argc != 2) {
         remote_addr = DEFAULT_DNS_SERVER;
         printf("WARNING: proper syntax is as follows:\n");
@@ -22,10 +23,20 @@ int main(const int argc, const char *argv[])
         printf("         an invalid number of arguments was specified, so reverting to DNS_SERVER=%s\n", remote_addr);
     }
     else if (strlen(argv[0]) > MAX_DNS_SERVER_ADDR_LENGTH) {
-        /* Not my problem - fail silently */
         remote_addr = DEFAULT_DNS_SERVER;
         printf("WARNING: invalid DNS server specified - reverting to %s\n", remote_addr);
     }
+#else
+    if (argc != 2) {
+        perror("ERROR: proper syntax is as follows:\n");
+        perror("       %s DNS_SERVER\n", argv[0]);
+        return 1;
+    }
+    else if (strlen(argv[0]) > MAX_DNS_SERVER_ADDR_LENGTH) {
+        perror("ERROR: Invalid DNS server specified\n");
+        return 1;
+    }
+#endif
     else {
         remote_addr = argv[1];
     }
