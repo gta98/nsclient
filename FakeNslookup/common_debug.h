@@ -1,19 +1,22 @@
 #pragma once
 
-#define FLAG_DEBUG         1
-#define FLAG_IGNORE_SOCKET 0
-#define FLAG_SKIP_HOSTNAME 1
-#define FLAG_SINGLE_ITER   0
-#define FLAG_HAMMING_DIS   0
+#define FLAG_DEBUG                 1
+#define FLAG_SKIP_HOSTNAME         1
+#define FLAG_REVERT_DNS_IF_INVALID 0
+#define FLAG_REAL_NSLOOKUP         0
 
-#define DEBUG_FILE_PATH      "C:\\Users\\Public\\lala.txt"
-#define DEBUG_FILE_PATH_RECV "C:\\Users\\Public\\lala2.txt"
 #define DEBUG_HOSTNAME "www.google.com"
 
 #if FLAG_DEBUG == 1
 #define printd printf
 #else
 #define printd(...)
+#endif
+
+#if FLAG_DEBUG == 1
+#define assertd assert
+#else
+#define assertd(...)
 #endif
 
 #define perror(...) fprintf(stderr, __VA_ARGS__)
