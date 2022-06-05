@@ -12,6 +12,7 @@
 #include <winsock2.h>
 #include <assert.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 
 #include "common_types.h"

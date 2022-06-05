@@ -24,6 +24,9 @@
     <ClCompile Include="socket_utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="common_utils.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="socket_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="common_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
