@@ -1,30 +1,68 @@
 #include "dns_utils.h"
 
+struct dns_header {
+    unsigned short id;
+    unsigned char rd : 1;
+    unsigned char tc : 1;
+    unsigned char aa : 1;
+    unsigned char opcode : 4;
+    unsigned char qr : 1; 
+    unsigned char rcode : 4; 
+    unsigned char cd : 1; 
+    unsigned char ad : 1; 
+    unsigned char z : 1; 
+    unsigned char ra : 1;
+
+    unsigned short q_count;
+    unsigned short ans_count;
+    unsigned short auth_count;
+    unsigned short add_count; 
+};
+
+
+struct question {
+    unsigned short qtype;
+    unsigned short qclass;
+};
+
+
+typedef struct {
+    unsigned char* name;
+    struct question* ques;
+}; query;
+
 
 struct hostent* dnsQuery(const char* hostname) {
     struct hostent* remoteHost;
     int i, j, status;
-    char* query;
+    unsigned char* query;
     char* response;
-    size_t sizeof_query, sizeof_response;
+    size_t sizeof_response;
+    size_t* p_sizeof_query, sizeof_query;
 
     remoteHost = NULL;
     query = NULL;
     response = NULL;
+    sizeof_query = 0;
+    p_sizeof_query = &sizeof_query;
 
 #if FLAG_IGNORE_SOCKET == 1
     remoteHost = gethostbyname(hostname);
 #else
 
-    query = createDnsQueryBuf(hostname);
+    query = createDnsQueryBuf(hostname, p_sizeof_query);
     if (!query) {
         printd("Could not create DNS query buffer!\n");
         goto dnsQueryFailure;
     }
-    sizeof_query = strlen(query);
-    assert(sizeof_query > 0);
+    //sizeof_query = strlen(query);  //TODO - not the way to check its length!!!!! 
+    assert(query);
+    for (int i = 0; i < 100; i++)
+    {
+        printf("%c", query[i]);
+    }
 
-    status = sendto(sock, query, (int)sizeof_query, 0, NULL, 0);
+    status = sendto(sock, query, sizeof_query, 0, NULL, 0);
     if (status == SOCKET_ERROR) {
         printd("Could not send query to DNS server due to socket error\n");
         goto dnsQueryFailure;
@@ -52,7 +90,6 @@ struct hostent* dnsQuery(const char* hostname) {
 #endif
 
 dnsQueryFinish:
-    if (query) free(query);
     if (response) free(response);
     return remoteHost;
 
@@ -65,7 +102,10 @@ dnsQueryFailure:
 }
 
 
-char* createDnsQueryBuf(const char* hostname) {
+
+
+
+char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
     /*
     * INPUT: "hostname": e.g. "google.com", "www.ynet.co.il"
     * RETURN: "query[]":
@@ -73,46 +113,107 @@ char* createDnsQueryBuf(const char* hostname) {
     *         It contains the request "give me the IP address for <hostname>"
     */
     char* query;
+//    int sizeof_query;
+    int sizeof_qname;
+    struct dns_header* dns;
+    struct question *ques;
+    struct question* qinf_struct;
+    unsigned char buf[SIZE_DNS_QUERY_BUF], *qname, qinf[SIZE_DNS_QUERY_BUF]; //TODO - maybe change size
+
+    ques = NULL;
+    
+
+    // DNS - HEADER //
+    dns = (struct dns_header*)&buf;
+    dns->id = (unsigned short)htons(1);
+    dns->qr = 0;
+    dns->opcode = 0;
+    dns->aa = 0;
+    dns->tc = 0;
+    dns->rd = 1;
+    dns->ra = 0;
+    dns->z = 0;
+    dns->ad = 0;
+    dns->cd = 0;
+    dns->rcode = 0;
+    dns->q_count = htons(1);
+    dns->ans_count = 0;
+    dns->auth_count = 0;
+    dns->add_count = 0;
+
+
+    //  QUESTION //
+    qname = (unsigned char*)&qinf;
+    sizeof_qname = change_question_name(hostname, qname) +1;
+
+
+    memcpy(&buf[sizeof(struct dns_header)], qname, sizeof_qname*sizeof(char)+1);
+    memset(&qinf, '\0', sizeof(unsigned char) +1);
+
+
+    ques = (struct question*)&qinf_struct;
+    ques->qtype = htons(1);
+    ques->qclass = htons(1);
+
+
+    memcpy(&buf[12 + sizeof_qname], ques, sizeof(struct question));
+    for (int i = 0; i < 100; i++)
+    {
+        printf("%x", buf[i]);
+    }
+    printf("%d, %d, %d", sizeof(struct dns_header), sizeof(struct question), sizeof(char) * sizeof_qname);
+    *sizeof_query = (size_t)(sizeof(struct dns_header) + sizeof(struct question) + sizeof(char) * sizeof_qname);
+    printf("%d", *sizeof_query);
+    return buf;
+    //memcpy(&buffer, buf, sizeof(struct dns_header) + sizeof(struct question) + sizeof(char) * sizeof_qname);
+    //for (int i = 0; i < 50; i++)
+ //   {
+   //     printf("%x", buf
+    //}
+
+
+}
+
+int change_question_name(const char* hostname, unsigned char* qname)
+{
     int i, j;
-    int sizeof_query;
+    int sizeof_qname;
     int count;
     char* temp;
 
     j = 0;
     count = 0;
     temp = NULL;
+    sizeof_qname = strlen(hostname) + 1; /* FIXME: Tom - what do we need to reduce sizeof_query to? */
+    temp = malloc(sizeof(char) * sizeof_qname); //TODO - free allocation
 
-    sizeof_query = strlen(hostname)+1; /* FIXME: Tom - what do we need to reduce sizeof_query to? */
-    temp = malloc(sizeof(char) * sizeof_query); //TODO - free allocation
-    query = malloc(sizeof(char)*((size_t)sizeof_query+(size_t)1));
-    if (!query) return NULL;
-    for (i = 0; i < sizeof_query + 1; i++) {
+
+    for (i = 0; i < sizeof_qname + 1; i++) {
         if (hostname[i] == '.' || hostname[i] == '\0')
         {
             int l = 0;
-            sprintf(temp,"%d",count);
-            if (strlen(temp) > 9) realloc(query, sizeof_query+strlen(temp));
+            sprintf(temp, "%d", count);
+            if (strlen(temp) > 9) realloc(qname, sizeof_qname + strlen(temp));
             while (temp[l] != '\0') {
-                query[j] = temp[l];
+                qname[j] = temp[l];
                 j++;
                 l++;
             }
-            for (int k = i-count; k < i; k++)
+            for (int k = i - count; k < i; k++)
             {
                 if (isupper(hostname[k])) {
-                    query[j] = tolower(hostname[k]); continue;
+                    qname[j] = tolower(hostname[k]); continue;
                 }
-                query[j] = hostname[k];
+                qname[j] = hostname[k];
                 j++;
             }
             count = -1;
         }
         count++;
     }
-    query[j] = '\0';
-    /* FIXME: Tom - Implement here - fill query[0 to sizeof_query] based on hostname */
-
-    return query;
+    qname[j] = '\0';
+    return j;
+    free(temp);
 }
 
 
