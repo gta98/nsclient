@@ -183,50 +183,68 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
 }
 
 
-int validateHost(const char* hostname) {
+int validateHost(const unsigned char* hostname) {
+    /*
+    * INPUT: hostname
+    * RETURN: STATUS_SUCCESS if hostname is valid, STATUS_ERR_BAD_NAME otherwise
+    * DESCRIPTION:
+    * Follows RFC 1035 specification.
+    * we consider hostname to be valid <=> hostname matches definition of <subdomain>
+    * We are intentionally ignoring the " " case
+    * Definitions, from the specification:
+    * Octet ::= 8 bits (1 char)
+    * <domain> ::= <subdomain> | " "
+    * <subdomain> ::= <label> | <subdomain> "." <label>
+    * <label> ::= <letter> [ [ <ldh-str> ] <let-dig> ]
+    * <ldh-str> ::= <let-dig-hyp> | <let-dig-hyp> <ldh-str>
+    * <let-dig-hyp> ::= <let-dig> | "-"
+    * <let-dig> ::= <letter> | <digit>
+    * <letter> ::= any one of the 52 alphabetic characters A through Z in
+    *              upper case and a through z in lower case
+    * <digit> ::= any one of the ten digits 0 through 9
+    */
     int i, j, seg_start, seg_end;
+    int label_length;
+    char* label;
     size_t length;
 
     length = strlen(hostname);
 
-    if ((length == 0) || (length > MAX_HOSTNAME_LENGTH)) {
+    if ((length == 0) || (length > 255)) {
+        /* RFC 1035 states:
+            the total length of a domain name (i.e., label octets and label length octets)
+            is restricted to 255 octets or less.
+        */
         return STATUS_ERR_BAD_NAME;
     }
 
-    if ((hostname[0] == '-') || (hostname[length - 1] == '-')) {
-        return STATUS_ERR_BAD_NAME;
-    }
-
-    if (hostname[length - 1] == '.') {
-        /* apparently, hostname can end with a dot */
-        length--;
-        if (length < 0) {
+    label = strtok(hostname, ".");
+    while (label) {
+        label_length = strlen(label);
+        if ((label_length < 1) || (label_length > 63)) {
+            /* RFC 1035 states:
+                2.3.4. Size limits
+                Various objects and parameters in the DNS have size limits.  They are
+                listed below.  Some could be easily changed, others are more
+                fundamental.
+                labels          63 octets or less
+               And, from the definition <label>, it must have at least 1 letter (@ idx 0)
+            */
             return STATUS_ERR_BAD_NAME;
         }
-    }
-
-    /* each segment must have 1<=n<=63 characters */
-    for (seg_start = 0; (seg_start < length);) {
-        for (seg_end = seg_start; (seg_end < length) && (hostname[seg_end] != '.'); seg_end++);
-        /* now, we are ensured that hostname[seg_end]=='.' or seg_end==length */
-        if (seg_start == seg_end) {
+        /* RFC 1035 states:
+            <label> ::= <letter> [ [ <ldh-str> ] <let-dig> ]
+        */
+        if (!is_letter(label[0])) {
             return STATUS_ERR_BAD_NAME;
         }
-        if ((hostname[seg_start] == '-') || (hostname[seg_end - 1] == '-')) {
+        if (!str_check_all(label, is_let_dig_hyp)) {
             return STATUS_ERR_BAD_NAME;
         }
-        for (i = seg_start; i < seg_end; i++) {
-            if ((hostname[i] == '-')
-                || (('0' <= hostname[i]) && (hostname[i] <= '9'))
-                || (('a' <= hostname[i]) && (hostname[i] <= 'z'))
-                || (('A' <= hostname[i]) && (hostname[i] <= 'Z'))) {
-                /* all good */
-            }
-            else {
-                return STATUS_ERR_BAD_NAME;
-            }
+        if (!is_let_dig(label[label_length - 1])) {
+            return STATUS_ERR_BAD_NAME;
         }
-        seg_start = seg_end + 1;
+        label = strtok(NULL, ".");
     }
 
     return STATUS_SUCCESS;

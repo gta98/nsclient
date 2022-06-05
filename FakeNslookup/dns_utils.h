@@ -3,6 +3,7 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #include "common_includes.h"
+#include "common_utils.h"
 
 typedef struct DnsHeader {
     unsigned short id;
@@ -41,7 +42,7 @@ typedef struct Query {
 SOCKET sock;
 
 int change_question_name(const unsigned char* hostname, unsigned char* qname);
-int validateHost(const char* hostname);
+int validateHost(const unsigned char* hostname);
 struct hostent* dnsQuery(const char* hostname);
 char* createDnsQueryBuf(const char* hostname, size_t* p_sizeof_query);
 struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response);

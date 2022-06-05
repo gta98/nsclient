@@ -146,6 +146,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="common_utils.c" />
     <ClCompile Include="dns_utils.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="socket_utils.c" />
@@ -156,6 +157,7 @@
     <ClInclude Include="common_debug.h" />
     <ClInclude Include="common_includes.h" />
     <ClInclude Include="common_types.h" />
+    <ClInclude Include="common_utils.h" />
     <ClInclude Include="dns_utils.h" />
     <ClInclude Include="socket_utils.h" />
   </ItemGroup>
