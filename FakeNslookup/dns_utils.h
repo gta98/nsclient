@@ -12,9 +12,10 @@ size_t change_question_name(const unsigned char* hostname, unsigned char* qname)
 int validateHost(const unsigned char* hostname);
 struct hostent* dnsQuery(const char* hostname);
 char* createDnsQueryBuf(const char* hostname, size_t* p_sizeof_query);
-struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response);
+struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response, size_t sizeof_query);
 void printRemoteHost(struct hostent* remoteHost);
 void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname);
+char far* revert_question_name(unsigned char* reader, unsigned char* response, int* count);
 
 typedef struct DnsHeader {
     unsigned short id;
