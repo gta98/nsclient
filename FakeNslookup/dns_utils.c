@@ -11,6 +11,9 @@ struct hostent* dnsQuery(const char* hostname) {
     unsigned char* query;
     unsigned char* response;
     size_t sizeof_query, sizeof_response;
+    dns_header_t* dns;
+    answer_t* ans;
+    unsigned char* reader;
 
     remoteHost = NULL;
     query = NULL;
@@ -62,6 +65,40 @@ struct hostent* dnsQuery(const char* hostname) {
     printd("])\n");
     printd("About to parse remoteHost from response\n");
     remoteHost = parseDnsResponseBuf(response, sizeof_response);
+    reader = &response[sizeof_query];
+    dns = (dns_header_t*)response;
+
+    printf("\nThe response contains : ");
+    printf("\n %d Questions.", ntohs(dns->q_count));
+    printf("\n %d Answers.", ntohs(dns->ans_count));
+    printf("\n %d Authoritative Servers.", ntohs(dns->auth_count));
+    printf("\n %d Additional records.\n\n", ntohs(dns->add_count));
+    
+    // check R-code // TODO - maybe put in a function
+
+    switch (dns->rcode)
+    {
+    case 0: 
+        break;
+    case 1: perror("Format error - The name server was unable to interpret the query\n");
+        break;
+    case 2: perror("Server failure - The name server was unable to process this query due to a problem with the name server.\n");
+        break;
+    case 3: perror("Name Error - Meaningful only for responses from an authoritative name server, this code signifies that the domain name referenced in the query does not exist.\n");
+        break;    
+    case 4: perror("Not Implemented - The name server does not support the requested kind of query\n");
+        break;    
+    case 5: perror(" Refused - The name server refuses to perform the specified operation for policy reasons.\n");
+        break;    
+    default: perror("Reserved for future use.\n");
+        break;
+    }
+
+    int stop = 0;
+    remoteHost->h_name = revert_question_name(reader, response, &stop);
+    
+
+
     if (!remoteHost) {
         printd("Failure in parsing response from DNS server!\n");
         goto dnsQueryFailure;
@@ -135,6 +172,69 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
     return buf;
 
 }
+
+
+char far* revert_question_name(unsigned char* reader, unsigned char* response, int* count)
+{
+    unsigned char* name;
+    unsigned int p = 0, jumped = 0, offset;
+    int i, j;
+    char far* newname;
+    *count = 1;
+    name = (unsigned char*)malloc(256);
+    newname = NULL;
+
+    name[0] = '\0';
+
+    //read the names in 3www6google3com format
+    while (*reader != 0)
+    {
+        if (*reader >= 192)
+        {
+            offset = (*reader) * 256 + *(reader + 1) - 49152; //49152 = 11000000 00000000 ;)
+            reader = response + offset - 1;
+            jumped = 1; //we have jumped to another location so counting wont go up!
+        }
+        else
+        {
+            name[p++] = *reader;
+        }
+
+        reader = reader + 1;
+
+        if (jumped == 0)
+        {
+            *count = *count + 1; //if we havent jumped to another location then we can count up
+        }
+    }
+
+    name[p] = '\0'; //string complete
+    if (jumped == 1)
+    {
+        *count = *count + 1; //number of steps we actually moved forward in the packet
+    }
+
+    //now convert 3www6google3com0 to www.google.com
+    for (i = 0; i < (int)strlen((const char*)name); i++)
+    {
+        p = name[i];
+        for (j = 0; j < (int)p; j++)
+        {
+            name[i] = name[i + 1];
+            i = i + 1;
+        }
+        name[i] = '.';
+    }
+    name[i - 1] = '\0'; //remove the last dot
+
+    for (i - 1; i = 0; i--)
+    {
+        newname[i] = name[i];
+    }
+
+    return newname;
+}
+
 
 size_t change_question_name(const unsigned char* _hostname, unsigned char* dst) {
     /*

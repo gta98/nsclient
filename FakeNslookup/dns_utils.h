@@ -7,6 +7,7 @@
 
 SOCKET sock;
 
+char far* revert_question_name(unsigned char* reader, unsigned char* response, int* count);
 size_t change_question_name(const unsigned char* hostname, unsigned char* qname);
 int validateHost(const unsigned char* hostname);
 struct hostent* dnsQuery(const char* hostname);
@@ -47,3 +48,9 @@ typedef struct Query {
     unsigned char* name;
     struct question* ques;
 } query_t;
+
+typedef struct Answer {
+    unsigned char* rcode;
+    unsigned char* address;
+
+} answer_t;
