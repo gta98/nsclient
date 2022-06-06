@@ -1,11 +1,11 @@
 #pragma once
 
 #define FLAG_DEBUG                 1
-#define FLAG_SKIP_HOSTNAME         0
-#define FLAG_REVERT_DNS_IF_INVALID 1
+#define FLAG_SKIP_HOSTNAME         1
+#define FLAG_REVERT_DNS_IF_INVALID 0
 #define FLAG_REAL_NSLOOKUP         0
 
-#define DEBUG_HOSTNAME "www.google.com"
+#define DEBUG_HOSTNAME "mail.tau.ac.il"
 
 #if FLAG_DEBUG == 1
 #define printd printf
