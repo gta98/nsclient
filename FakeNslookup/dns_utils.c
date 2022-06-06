@@ -64,41 +64,8 @@ struct hostent* dnsQuery(const char* hostname) {
     printd("0x%02x", response[sizeof_response - 1]);
     printd("])\n");
     printd("About to parse remoteHost from response\n");
-    remoteHost = parseDnsResponseBuf(response, sizeof_response);
-    reader = &response[sizeof_query];
-    dns = (dns_header_t*)response;
-
-    printf("\nThe response contains : ");
-    printf("\n %d Questions.", ntohs(dns->q_count));
-    printf("\n %d Answers.", ntohs(dns->ans_count));
-    printf("\n %d Authoritative Servers.", ntohs(dns->auth_count));
-    printf("\n %d Additional records.\n\n", ntohs(dns->add_count));
+    remoteHost = parseDnsResponseBuf(response, sizeof_response, sizeof_query);
     
-    // check R-code // TODO - maybe put in a function
-
-    switch (dns->rcode)
-    {
-    case 0: 
-        break;
-    case 1: perror("Format error - The name server was unable to interpret the query\n");
-        break;
-    case 2: perror("Server failure - The name server was unable to process this query due to a problem with the name server.\n");
-        break;
-    case 3: perror("Name Error - Meaningful only for responses from an authoritative name server, this code signifies that the domain name referenced in the query does not exist.\n");
-        break;    
-    case 4: perror("Not Implemented - The name server does not support the requested kind of query\n");
-        break;    
-    case 5: perror(" Refused - The name server refuses to perform the specified operation for policy reasons.\n");
-        break;    
-    default: perror("Reserved for future use.\n");
-        break;
-    }
-
-    int stop = 0;
-    remoteHost->h_name = revert_question_name(reader, response, &stop);
-    
-
-
     if (!remoteHost) {
         printd("Failure in parsing response from DNS server!\n");
         goto dnsQueryFailure;
@@ -174,15 +141,108 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
 }
 
 
-char far* revert_question_name(unsigned char* reader, unsigned char* response, int* count)
-{
+size_t change_question_name(const unsigned char* _hostname, unsigned char* dst) {
+    /*
+    * INPUT: "_hostname": e.g. "www.abcd.com"
+    * OUTPUT: "dst": e.g. [0x3,"www",0x4,"abcd",0x3,"com",0x0]
+    * RETURN: size of dst written
+    */
+    int i, j;
+    size_t len_original, seg_len, dst_counter;
+    char* token;
+    char* hostname;
+
+    len_original = strlen(_hostname);
+    hostname = _strdup(_hostname);
+    if (!hostname) return 0;
+    dst_counter = 0;
+    token = strtok(hostname, ".");
+    while (token != NULL) {
+        seg_len = strlen(token);
+        assertd((1 <= seg_len) && (seg_len <= 63)); /* Already verified earlier */
+        dst[dst_counter] = (unsigned char) seg_len;
+        dst_counter += sizeof(char);
+        for (j = 0; j < seg_len; j++)
+            dst[dst_counter+j] = token[j];
+        dst_counter += seg_len;
+        token = strtok(NULL, ".");
+    }
+    dst[dst_counter] = 0;
+    dst_counter += 1;
+
+    printd("bytes([");
+    for (i = 0; i < dst_counter-1; i++) {
+        printd("0x%02x,", dst[i]);
+    }
+    printd("0x%02x])", dst[dst_counter - 1]);
+
+    free(hostname);
+
+    return dst_counter;
+}
+
+
+struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response, size_t sizeof_query) {
+    /*
+    * INPUT: "response": fetched from DNS server through recvfrom()
+    * RETURN: hostent object with returned IP
+    */
+    struct hostent* remoteHost;
+    unsigned char* reader;
+    dns_header_t* dns;
+    int i, j;
+    
+    remoteHost = malloc(sizeof(struct hostent));
+    if (!remoteHost) return NULL;
+
+    /* FIXME: Alon - Implement here - fill remoteHost based on DNS response */
+
+    reader = response+sizeof_query;
+    //response += sizeof_query;
+    //sizeof_response -= sizeof_query;
+    dns = (dns_header_t*)response;
+
+    printf("\nThe response contains : ");
+    printf("\n %d Questions.", ntohs(dns->q_count));
+    printf("\n %d Answers.", ntohs(dns->ans_count));
+    printf("\n %d Authoritative Servers.", ntohs(dns->auth_count));
+    printf("\n %d Additional records.\n\n", ntohs(dns->add_count));
+
+    // check R-code // TODO - maybe put in a function
+
+    switch (dns->rcode) {
+        case 0:
+            break;
+        case 1: perror("Format error - The name server was unable to interpret the query\n");
+            break;
+        case 2: perror("Server failure - The name server was unable to process this query due to a problem with the name server.\n");
+            break;
+        case 3: perror("Name Error - Meaningful only for responses from an authoritative name server, this code signifies that the domain name referenced in the query does not exist.\n");
+            break;
+        case 4: perror("Not Implemented - The name server does not support the requested kind of query\n");
+            break;
+        case 5: perror("Refused - The name server refuses to perform the specified operation for policy reasons.\n");
+            break;
+        default: perror("Reserved for future use.\n");
+            break;
+    }
+
+    int stop = 0;
+    remoteHost->h_name = revert_question_name(reader, response, &stop);
+    printd("h_name == %s\n", remoteHost->h_name);
+
+    return remoteHost;
+}
+
+
+char far* revert_question_name(unsigned char* reader, unsigned char* response, int* count) {
     unsigned char* name;
     unsigned int p = 0, jumped = 0, offset;
     int i, j;
     char far* newname;
     *count = 1;
-    name = (unsigned char*)malloc(256);
-    newname = NULL;
+    name = (unsigned char*)malloc(1024);
+    newname = (unsigned char*)malloc(1024);
 
     name[0] = '\0';
 
@@ -227,70 +287,9 @@ char far* revert_question_name(unsigned char* reader, unsigned char* response, i
     }
     name[i - 1] = '\0'; //remove the last dot
 
-    for (i - 1; i = 0; i--)
-    {
-        newname[i] = name[i];
-    }
+    for (j = 0; j <= i - 1; j++) newname[j] = name[j];
 
     return newname;
-}
-
-
-size_t change_question_name(const unsigned char* _hostname, unsigned char* dst) {
-    /*
-    * INPUT: "_hostname": e.g. "www.abcd.com"
-    * OUTPUT: "dst": e.g. [0x3,"www",0x4,"abcd",0x3,"com",0x0]
-    * RETURN: size of dst written
-    */
-    int i, j;
-    size_t len_original, seg_len, dst_counter;
-    char* token;
-    char* hostname;
-
-    len_original = strlen(_hostname);
-    hostname = _strdup(_hostname);
-    if (!hostname) return 0;
-    dst_counter = 0;
-    token = strtok(hostname, ".");
-    while (token != NULL) {
-        seg_len = strlen(token);
-        assertd((1 <= seg_len) && (seg_len <= 63)); /* Already verified earlier */
-        dst[dst_counter] = (unsigned char) seg_len;
-        dst_counter += sizeof(char);
-        for (j = 0; j < seg_len; j++)
-            dst[dst_counter+j] = token[j];
-        dst_counter += seg_len;
-        token = strtok(NULL, ".");
-    }
-    dst[dst_counter] = 0;
-    dst_counter += 1;
-
-    printd("bytes([");
-    for (i = 0; i < dst_counter-1; i++) {
-        printd("0x%02x,", dst[i]);
-    }
-    printd("0x%02x])", dst[dst_counter - 1]);
-
-    free(hostname);
-
-    return dst_counter;
-}
-
-
-struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response) {
-    /*
-    * INPUT: "response": fetched from DNS server through recvfrom()
-    * RETURN: hostent object with returned IP
-    */
-    struct hostent* remoteHost;
-    int i, j;
-    
-    remoteHost = malloc(sizeof(struct hostent));
-    if (!remoteHost) return NULL;
-
-    /* FIXME: Tom - Implement here - fill remoteHost based on DNS response */
-
-    return remoteHost;
 }
 
 
