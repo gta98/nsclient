@@ -29,3 +29,12 @@ bool str_check_all(const unsigned char* s, bool (*is_char_condition)(const unsig
 	}
 	return true;
 }
+
+void printAsBytes(const unsigned char* s, size_t sizeof_s) {
+	int i;
+	printd("bytes([");
+	for (i = 0; i < sizeof_s - 1; i++)
+		printd("0x%x,", s[i]);
+	printd("0x%x", s[sizeof_s - 1]);
+	printd("])\n");
+}
