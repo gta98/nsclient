@@ -204,7 +204,6 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     printAsBytes(response, sizeof_response);
     printd("About to parse remoteHost from response\n");
  
-
     remoteHost = malloc(sizeof(struct hostent));
     if (!remoteHost) {
         free(aliases_ptr);
@@ -216,7 +215,7 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
 
     dns = (dns_header_t*)reader;
     parseDnsHeaderFromResponse(dns);
-    if (dns->rcode != 0) {
+    if ((dns->rcode != 0) || (dns->ans_count < 1)) {
         free(aliases_ptr);
         free(h_addr_list_ptr);
         free(remoteHost);
@@ -360,28 +359,23 @@ size_t read_qname(const unsigned char* reader, char far** h_name) {
 
 
 void parseDnsHeaderFromResponse(dns_header_t* dns) {
-    printf("\nThe response contains : ");
-    printf("\n %d Questions.", ntohs(dns->q_count));
-    printf("\n %d Answers.", ntohs(dns->ans_count));
-    printf("\n %d Authoritative Servers.", ntohs(dns->auth_count));
-    printf("\n %d Additional records.\n\n", ntohs(dns->add_count));
-
-    // check R-code // 
+    printd("QUESTIONS=%d, ANSWERS=%d, AUTH=%d, ADDITIONAL=%d",
+        ntohs(dns->q_count), ntohs(dns->ans_count), ntohs(dns->auth_count), ntohs(dns->add_count));
 
     switch (dns->rcode) {
     case 0:
         break;
-    case 1: perror("Format error - The name server was unable to interpret the query\n");
+    case 1: printd("Format error - The name server was unable to interpret the query\n");
         break;
-    case 2: perror("Server failure - The name server was unable to process this query due to a problem with the name server.\n");
+    case 2: printd("Server failure - The name server was unable to process this query due to a problem with the name server.\n");
         break;
-    case 3: perror("Name Error - Meaningful only for responses from an authoritative name server, this code signifies that the domain name referenced in the query does not exist.\n");
+    case 3: printd("Name Error - Meaningful only for responses from an authoritative name server, this code signifies that the domain name referenced in the query does not exist.\n");
         break;
-    case 4: perror("Not Implemented - The name server does not support the requested kind of query\n");
+    case 4: printd("Not Implemented - The name server does not support the requested kind of query\n");
         break;
-    case 5: perror("Refused - The name server refuses to perform the specified operation for policy reasons.\n");
+    case 5: printd("Refused - The name server refuses to perform the specified operation for policy reasons.\n");
         break;
-    default: perror("Reserved for future use.\n");
+    default: printd("Reserved for future use.\n");
         break;
     }
 }
