@@ -10,9 +10,16 @@ int main(const int argc, const char *argv[])
     WSADATA wsaData;
     const char* remote_addr;
     struct hostent* remoteHost;
-    int status;
-    
+    int i, status;
     char hostname[MAX_HOSTNAME_LENGTH_INPUT];
+#if FLAG_DEBUG == 1
+    _CrtMemState state;
+#endif
+
+#if FLAG_DEBUG == 1
+    _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
+    _CrtMemCheckpoint(&state);
+#endif
 
 #if FLAG_REVERT_DNS_IF_INVALID == 1
     if (argc != 2) {
@@ -88,5 +95,8 @@ int main(const int argc, const char *argv[])
     }
 
     if (sock) closesocket(sock);
+#if FLAG_DEBUG == 1
+    _CrtMemDumpAllObjectsSince(&state);
+#endif
     return 0;
 }

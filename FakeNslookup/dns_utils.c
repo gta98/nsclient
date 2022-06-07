@@ -216,6 +216,12 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
 
     dns = (dns_header_t*)reader;
     parseDnsHeaderFromResponse(dns);
+    if (dns->rcode != 0) {
+        free(aliases_ptr);
+        free(h_addr_list_ptr);
+        free(remoteHost);
+        return NULL;
+    }
 
     aliases = NULL;
     memcpy(aliases_ptr, &aliases, sizeof(char**));
@@ -256,8 +262,6 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     if (remoteHost->h_addrtype == 5) reader += (remoteHost->h_length)*sizeof(char);
     addr_s = (struct in_addr*)reader;
     
-    // FIXME - Tom - what does h_addr_list need to be assigned with?
-    // in order for this assertion to pass
     size_t h_addr_list_len = (response + sizeof_response) - reader;
     h_addr_list = malloc(h_addr_list_len);
     if (!h_addr_list) {
