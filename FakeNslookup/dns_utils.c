@@ -314,9 +314,15 @@ int read_qname_wrapper(const unsigned char* reader, size_t sizeof_qname, size_t 
             rname_offset++;
         }
     }
+    else if (rname_lbl_ptr == 0)
+    {
+        for (int j = 0; j <= sizeof_qname; j++) {
+
+            name_frm_ptr[j] = response[sizeof(dns_header_t)+j];
+        }
+    }
     read_qname(name_frm_ptr, &remoteHost->h_name);
     free(name_frm_ptr);
-
     return STATUS_SUCCESS;
 }
 
