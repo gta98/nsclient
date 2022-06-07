@@ -249,7 +249,7 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     remoteHost->h_length =rdlength;
     remoteHost->h_addrtype = rtype;
 
-    if (remoteHost->h_addrtype == 5) reader += remoteHost->h_length;
+    if (remoteHost->h_addrtype == 5) reader += (remoteHost->h_length)*sizeof(char);
     addr_s = (struct in_addr*)reader;
     remoteHost->h_addr_list = inet_ntoa(*addr_s);
 
