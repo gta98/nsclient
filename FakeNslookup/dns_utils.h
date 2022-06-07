@@ -38,7 +38,7 @@ void printRemoteHost(struct hostent* remoteHost);
 void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname);
 size_t read_qname(const unsigned char* reader, char far** h_name);
 int read_qname_wrapper(const unsigned char* reader, size_t sizeof_qname, size_t sizeof_response,
-    const unsigned char* response, struct hostent* remoteHost);
+const unsigned char* response, struct hostent* remoteHost);
 void parseDnsHeaderFromResponse(dns_header_t* dns);
 
 typedef struct Name {
