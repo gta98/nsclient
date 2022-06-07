@@ -253,13 +253,17 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
         rname_offset+=addition;
         for (int j = 0; j <= sizeof_qname; j++) {
             if ((rname_offset >= sizeof_response) || (rname_offset < 0)) {
+                // in this case, the DNS server is telling us to perform access violation
                 free(aliases_ptr);
                 free(h_addr_list_ptr);
                 free(name_frm_ptr);
                 free(remoteHost);
                 return NULL;
             }
+#pragma warning( push )
+#pragma warning( disable : 6386 )
             name_frm_ptr[j] = response[rname_offset];
+#pragma warning( pop )
             rname_offset++;
         }
     }
