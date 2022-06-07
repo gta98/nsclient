@@ -181,6 +181,7 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     dns_header_t* dns;
     question_t* ques;
     int i;
+    int status;
     char* aliases;
     char* h_addr_list;
     char** h_addr_list_ptr;
@@ -232,44 +233,13 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
 
     // here reader is in position of ANSWER //
 
-
-    uint16_t rname_lbl_ptr = (reader[0] >> 6); // specify label of domain or pointer to name in response
-    char* name_frm_ptr = (char*)malloc(sizeof_qname+1);
-    if (name_frm_ptr == NULL) {
+    status = read_qname_wrapper(reader, sizeof_qname, sizeof_response, response, remoteHost);
+    if (status != STATUS_SUCCESS) {
         free(aliases_ptr);
         free(h_addr_list_ptr);
         free(remoteHost);
         return NULL;
     }
-    if (rname_lbl_ptr == 3) // if pointer to lable:
-    {
-        int rname_offset = reader[0];
-        int k = 0;
-        int j = 0;
-        rname_offset = removeSignificantBit(rname_offset);
-        rname_offset = removeSignificantBit(rname_offset);
-        int addition = reader[1];
-        rname_offset = rname_offset << 2;
-        rname_offset+=addition;
-        for (int j = 0; j <= sizeof_qname; j++) {
-            if ((rname_offset >= sizeof_response) || (rname_offset < 0)) {
-                // in this case, the DNS server is telling us to perform access violation
-                free(aliases_ptr);
-                free(h_addr_list_ptr);
-                free(name_frm_ptr);
-                free(remoteHost);
-                return NULL;
-            }
-#pragma warning( push )
-#pragma warning( disable : 6386 )
-            // doesn't seem to be a real issue here, so I suppressed it
-            name_frm_ptr[j] = response[rname_offset];
-#pragma warning( pop )
-            rname_offset++;
-        }
-    }
-    read_qname(name_frm_ptr, &remoteHost->h_name);
-    free(name_frm_ptr);
     reader += 2 * sizeof(char);
 
     uint16_t rtype = (reader[0] << 4) | (reader[1]);
@@ -317,7 +287,46 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
 }
 
 
+int read_qname_wrapper(const unsigned char* reader, size_t sizeof_qname, size_t sizeof_response,
+                        const unsigned char* response, struct hostent* remoteHost) {
+    // returns STATUS_SUCCESS if error, else STATUS_ERROR
+    uint16_t rname_lbl_ptr;
+    char* name_frm_ptr;
+    int rname_offset, k, j, addition;
+    rname_lbl_ptr = (reader[0] >> 6); // specify label of domain or pointer to name in response
+    name_frm_ptr = (char*)malloc(sizeof_qname + 1);
+    if (name_frm_ptr == NULL) {
+        return STATUS_ERROR;
+    }
+    if (rname_lbl_ptr == 3) // if pointer to lable:
+    {
+        rname_offset = reader[0];
+        k = 0;
+        j = 0;
+        rname_offset = removeSignificantBit(rname_offset);
+        rname_offset = removeSignificantBit(rname_offset);
+        addition = reader[1];
+        rname_offset = rname_offset << 2;
+        rname_offset += addition;
+        for (j = 0; j <= sizeof_qname; j++) {
+            if ((rname_offset >= sizeof_response) || (rname_offset < 0)) {
+                // in this case, the DNS server is telling us to perform access violation
+                free(name_frm_ptr);
+                return STATUS_ERROR;
+            }
+#pragma warning( push )
+#pragma warning( disable : 6386 )
+            // doesn't seem to be a real issue here, so I suppressed it
+            name_frm_ptr[j] = response[rname_offset];
+#pragma warning( pop )
+            rname_offset++;
+        }
+    }
+    read_qname(name_frm_ptr, &remoteHost->h_name);
+    free(name_frm_ptr);
 
+    return STATUS_SUCCESS;
+}
 
 size_t read_qname(const unsigned char* reader, char far** h_name) {
     int i;

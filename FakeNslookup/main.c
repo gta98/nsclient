@@ -11,7 +11,6 @@ int main(const int argc, const char *argv[])
     const char* remote_addr;
     struct hostent* remoteHost;
     int status;
-    int i;
     
     char hostname[MAX_HOSTNAME_LENGTH_INPUT];
 
