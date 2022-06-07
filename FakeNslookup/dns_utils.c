@@ -227,8 +227,6 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     memcpy(aliases_ptr, &aliases, sizeof(char**));
     remoteHost->h_aliases = aliases_ptr;
 
-
-
     reader += sizeof(dns_header_t);
     printAsBytes(reader, sizeof(response_t));
 
@@ -267,15 +265,6 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     if (!h_addr_list) {
         free(aliases_ptr);
         free(h_addr_list_ptr);
-        free(remoteHost->h_name);
-        free(remoteHost);
-        return NULL;
-    }
-    h_addr_list_ptr = (char**)malloc(sizeof(char**));
-    if (!h_addr_list_ptr) {
-        free(aliases_ptr);
-        free(h_addr_list_ptr);
-        free(h_addr_list);
         free(remoteHost->h_name);
         free(remoteHost);
         return NULL;

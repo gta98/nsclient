@@ -73,6 +73,7 @@ int main(const int argc, const char *argv[])
             hostname[i] = tolower(hostname[i]);
 #endif
 
+        
         if (!strcmp(hostname, QUIT_COMMAND_STRING)) {
             break;
         }
