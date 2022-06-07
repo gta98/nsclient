@@ -89,7 +89,7 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query, size_t* size
     char* qname;
     question_t *qinf;
 
-    *sizeof_query = sizeof(dns_header_t) + (sizeof(char) * 1024) + sizeof(question_t); // FIXME - set constant SIZE_DNS_QUERY_BUF;
+    *sizeof_query = sizeof(dns_header_t) + (sizeof(char) * 1024) + sizeof(question_t);
     buf = NULL;
     buf = malloc(sizeof(char) * (*sizeof_query));
     if (!buf) {
