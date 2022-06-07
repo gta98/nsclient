@@ -10,20 +10,21 @@ struct hostent* dnsQuery(const char* hostname) {
     int i, status;
     unsigned char* query;
     unsigned char* response;
-    size_t sizeof_query, sizeof_response;
-    answer_t* ans;
+    size_t sizeof_query, sizeof_response, sizeof_qname;
+  //  answer_t* ans;
     unsigned char* reader;
 
     remoteHost = NULL;
     query = NULL;
     response = NULL;
     sizeof_query = 0;
+    sizeof_qname = 0;
 
 #if FLAG_REAL_NSLOOKUP == 1
     remoteHost = gethostbyname(hostname);
 #else
 
-    query = createDnsQueryBuf(hostname, &sizeof_query);
+    query = createDnsQueryBuf(hostname, &sizeof_query,&sizeof_qname);
     if (!query) {
         printd("Could not create DNS query buffer!\n");
         goto dnsQueryFailure;
@@ -51,7 +52,7 @@ struct hostent* dnsQuery(const char* hostname) {
     }
     sizeof_response = status; /* actual response size */
 
-    remoteHost = parseDnsResponseBuf(response, sizeof_response);
+    remoteHost = parseDnsResponseBuf(response, sizeof_response,sizeof_qname);
     
     if (!remoteHost) {
         printd("Failure in parsing response from DNS server!\n");
@@ -76,7 +77,7 @@ dnsQueryFailure:
 
 
 
-char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
+char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query, size_t* sizeof_qname) {
     /*
     * INPUT: "hostname": e.g. "google.com", "www.ynet.co.il"
     * RETURN: "query[]":
@@ -85,7 +86,7 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
     */
     char* buf;
     dns_header_t *dns;
-    size_t sizeof_qname;
+   // size_t sizeof_qname;
     char* qname;
     question_t *qinf;
 
@@ -114,10 +115,10 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query) {
     dns->add_count = 0;
 
     qname = (char*) (buf + sizeof(dns_header_t));
-    sizeof_qname = (sizeof(char))*change_question_name(hostname, qname);
-    *sizeof_query = (*sizeof_query) - (sizeof(char) * 1024) + sizeof_qname;
+    *sizeof_qname = (sizeof(char))*change_question_name(hostname, qname);
+    *sizeof_query = (*sizeof_query) - (sizeof(char) * 1024) + *sizeof_qname;
 
-    qinf = (question_t*)(buf + sizeof(dns_header_t) + sizeof_qname);
+    qinf = (question_t*)(buf + sizeof(dns_header_t) + *sizeof_qname);
     qinf->qtype = htons(1);
     qinf->qclass = htons(1);
 
@@ -169,26 +170,29 @@ size_t change_question_name(const unsigned char* _hostname, unsigned char* dst) 
 }
 
 
-struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response) {
+struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_response, size_t sizeof_qname) {
     /*
     * INPUT: "response": fetched from DNS server through recvfrom()
+    *        sizeof_response
+    *        sizeof_qname : size of the name **sent** to DNS
     * RETURN: hostent object with returned IP
     */
     struct hostent* remoteHost;
     unsigned char* reader;
     dns_header_t* dns;
-    response_t* response_section;
+    question_t* ques;
+    name_t* ans_name;
     int i, j;
-    size_t sizeof_qname;
     char* data_bla;
     uint8_t address_octet;
     char* aliases;
-    struct in_addr* yosi;
+    struct in_addr* addr_s;
 
     printd("About to print response\n");
     printAsBytes(response, sizeof_response);
     printd("About to parse remoteHost from response\n");
-    
+ 
+
     remoteHost = malloc(sizeof(struct hostent));
     if (!remoteHost) return NULL;
 
@@ -196,46 +200,71 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
 
     dns = (dns_header_t*)reader;
     parseDnsHeaderFromResponse(dns);
-    reader += sizeof(dns_header_t);
-    
+
     aliases = NULL;
     remoteHost->h_aliases = &aliases;
-    remoteHost->h_length = 4;// dns->ans_count;
-    remoteHost->h_addrtype = 1; /* IP type */
-    remoteHost->h_addr_list = malloc(sizeof(char*) * 1);
-    if (!remoteHost->h_addr_list) {
-        free(remoteHost);
-        return NULL;
-    }
-    
-    sizeof_qname = read_qname(reader, &remoteHost->h_name);
-    reader += sizeof_qname;
+
+
+
+    reader += sizeof(dns_header_t);
     printAsBytes(reader, sizeof(response_t));
 
-    uint16_t rtype = ntohs((reader[0] << 4) | (reader[1]));
+
+    reader += sizeof_qname;
+    ques = (question_t*)reader;
+    reader += sizeof(question_t);
+
+    // here reader is in position of ANSWER //
+
+
+    uint16_t rname_lbl_ptr = (reader[0] >> 6); // specify label of domain or pointer to name in response
+    char* name_frm_ptr = (char*)malloc(sizeof_qname+1);
+    if (rname_lbl_ptr = 3) // if pointer to lable:
+    {
+        int rname_offset = reader[0];
+        int k = 0;
+        int j = 0;
+        rname_offset = removeSignificantBit(rname_offset);
+        rname_offset = removeSignificantBit(rname_offset);
+        int addition = reader[1];
+        rname_offset = rname_offset << 2;
+        rname_offset+=addition;
+        for (int j = 0; j <= sizeof_qname; j++) {
+                name_frm_ptr[j] = response[rname_offset];
+                rname_offset++;
+        }
+    }
+    sizeof_qname = read_qname(name_frm_ptr, &remoteHost->h_name);
+
     reader += 2 * sizeof(char);
-    uint16_t rclass = ntohs((reader[0] << 4) | (reader[1]));
+
+    uint16_t rtype = (reader[0] << 4) | (reader[1]);
+    reader += 2 * sizeof(char);
+    uint16_t rclass = (reader[0] << 4) | (reader[1]);
     reader += 2 * sizeof(char);
     uint32_t rttl = (reader[0] << 12) | (reader[1] << 8) | (reader[2] << 4) | (reader[3] << 0);
     reader += 4 * sizeof(char);
     uint16_t rdlength = (reader[0] << 4) | (reader[1]);
     reader += 2 * sizeof(char);
+    remoteHost->h_length =rdlength;
+    remoteHost->h_addrtype = rtype;
 
-    reader += 6 * sizeof(char);
-    yosi = (struct in_addr*)reader;
+    if (remoteHost->h_addrtype == 5) reader += remoteHost->h_length;
+    addr_s = (struct in_addr*)reader;
+    remoteHost->h_addr_list = inet_ntoa(*addr_s);
 
-    printf("sizeof char: %d\n", sizeof(char));
-    printf("specifically size of response_t is:::::: %d\n", sizeof(response_t));
-    printf("total size of structs: %d\n", sizeof(dns_header_t) + sizeof_qname + sizeof(response_t));
-    remoteHost->h_addr_list[0] = inet_ntoa(*yosi);
-    printf("BIBI: %s\n", remoteHost->h_addr_list[0]);
+    //printf("sizeof char: %d\n", sizeof(char));
+    //printf("specifically size of response_t is:::::: %d\n", sizeof(response_t));
+    //printf("total size of structs: %d\n", sizeof(dns_header_t) + sizeof_qname + sizeof(response_t));
+    printf("%s\n", remoteHost->h_addr_list);
 
     return remoteHost;
 }
 
 
+
+
 size_t read_qname(const unsigned char* reader, char far** h_name) {
-    // temporary solution
     int i, j;
     unsigned char next_up;
     size_t sizeof_qname;
@@ -280,7 +309,7 @@ void parseDnsHeaderFromResponse(dns_header_t* dns) {
     printf("\n %d Authoritative Servers.", ntohs(dns->auth_count));
     printf("\n %d Additional records.\n\n", ntohs(dns->add_count));
 
-    // check R-code // TODO - maybe put in a function
+    // check R-code // 
 
     switch (dns->rcode) {
     case 0:
@@ -389,6 +418,27 @@ void printRemoteHost(struct hostent* remoteHost) {
     }
 }
 
+
+//this function was copied from https://kalkicode.com/remove-significant-set-bit-number
+
+int removeSignificantBit(int num)
+{
+    if (num <= 0)
+    {
+        return;
+    }
+    int r = num >> 1;
+    r = r | (r >> 1);
+    r = r | (r >> 2);
+    r = r | (r >> 4);
+    r = r | (r >> 8);
+    r = r | (r >> 16);
+    // Remove most significant bit
+    int value = r & num;
+    // Display calculated result
+    return value;
+}
+
 void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname) {
 #if FLAG_DEBUG == 1
     int i;
@@ -398,8 +448,8 @@ void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* h
     if (remoteHostDebug != NULL) assertd(remoteHost != NULL);
     if (remoteHost != NULL) assertd(remoteHostDebug != NULL);
     if (remoteHost && remoteHostDebug) {
-        //printf("remoteHost->h_name=%s\nremoteHostDebug->h_name")
-        assertd(strcmp(remoteHost->h_name, remoteHostDebug->h_name) == 0);
+
+        assertd(strcmp(remoteHost->h_name, *(remoteHostDebug->h_name)) == 0);
         assertd(remoteHost->h_length == remoteHostDebug->h_length);
         assertd(remoteHost->h_addrtype == remoteHostDebug->h_addrtype);
         for (i = 0; (remoteHost->h_addr_list[i] || remoteHostDebug->h_addr_list[i]); i++) {
