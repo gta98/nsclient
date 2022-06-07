@@ -41,11 +41,6 @@ int read_qname_wrapper(const unsigned char* reader, size_t sizeof_qname, size_t 
 const unsigned char* response, struct hostent* remoteHost);
 void parseDnsHeaderFromResponse(dns_header_t* dns);
 
-typedef struct Name {
-    unsigned char label_pointer: 2;
-    unsigned char* offset;
-
-} name_t;
 
 typedef struct Question {
     unsigned short qtype;
@@ -60,10 +55,3 @@ typedef struct Response {
     unsigned short rdlength;
     struct in_addr addr;
 } response_t;
-
-
-typedef struct Query {
-    unsigned char* name;
-    struct question_t* ques;
-} query_t;
-
