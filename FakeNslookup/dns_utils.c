@@ -434,21 +434,32 @@ int validateHost(const unsigned char* _hostname) {
                 labels          63 octets or less
                And, from the definition <label>, it must have at least 1 letter (@ idx 0)
             */
+            free(hostname);
             return STATUS_ERR_BAD_NAME;
         }
         /* RFC 1035 states:
             <label> ::= <letter> [ [ <ldh-str> ] <let-dig> ]
         */
         if (!is_letter(label[0])) {
+            free(hostname);
             return STATUS_ERR_BAD_NAME;
         }
         if (!str_check_all(label, is_let_dig_hyp)) {
+            free(hostname);
             return STATUS_ERR_BAD_NAME;
         }
         if (!is_let_dig(label[label_length - 1])) {
+            free(hostname);
             return STATUS_ERR_BAD_NAME;
         }
         label = strtok(NULL, ".");
+    }
+
+    for (i = 0; i < length-1; i++) {
+        if ((hostname[i] == '.') && (hostname[i + 1] == '.')) {
+            free(hostname);
+            return STATUS_ERR_BAD_NAME;
+        }
     }
 
     free(hostname);
