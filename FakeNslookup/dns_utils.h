@@ -28,18 +28,24 @@ typedef struct DnsHeader {
 
 SOCKET sock;
 
+int removeSignificantBit(int num);
 char far* revert_question_name(unsigned char* reader, unsigned char* response, int* count);
 size_t change_question_name(const unsigned char* hostname, unsigned char* qname);
 int validateHost(const unsigned char* hostname);
 struct hostent* dnsQuery(const char* hostname);
 char* createDnsQueryBuf(const char* hostname, size_t* p_sizeof_query);
-struct hostent* parseDnsResponseBuf(const unsigned char* response);
+struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_reponse, size_t sizeof_qname);
 void printRemoteHost(struct hostent* remoteHost);
 void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname);
 char far* revert_question_name(unsigned char* reader, unsigned char* response, int* count);
 size_t read_qname(const unsigned char* reader, char far** h_name);
 void parseDnsHeaderFromResponse(dns_header_t* dns);
 
+typedef struct Name {
+    unsigned char label_pointer: 2;
+    unsigned char* offset;
+
+} name_t;
 
 typedef struct Question {
     unsigned short qtype;
@@ -47,29 +53,17 @@ typedef struct Question {
 } question_t;
 
 typedef struct Response {
-    uint16_t rtype;
-    uint16_t rclass;
-    uint32_t rttl;
-    uint16_t rdlength;
-    char char_1;
-    char char_2;
-    char char_3;
-    char char_4;
-    char char_5;
-    char char_6;
-    char char_7;
-    char char_8;
+   // struct Name rname; // compressed name
+    unsigned short rtype;
+    unsigned short rclass;
+    unsigned int rttl;
+    unsigned short rdlength;
     struct in_addr addr;
 } response_t;
 
 
 typedef struct Query {
     unsigned char* name;
-    struct question* ques;
+    struct question_t* ques;
 } query_t;
 
-typedef struct Answer {
-    unsigned char* rcode;
-    unsigned char* address;
-
-} answer_t;
