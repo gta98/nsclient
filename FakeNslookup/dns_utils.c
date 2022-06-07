@@ -7,7 +7,7 @@ struct hostent* dnsQuery(const char* hostname) {
     * RETURN: a hostent object == gethostbyname(hostname)
     */
     struct hostent* remoteHost;
-    int i, status;
+    int status;
     unsigned char* query;
     unsigned char* response;
     size_t sizeof_query, sizeof_response, sizeof_qname;
@@ -177,17 +177,14 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     * RETURN: hostent object with returned IP
     */
     struct hostent* remoteHost;
-    unsigned char* reader;
+    const unsigned char* reader;
     dns_header_t* dns;
     question_t* ques;
-    name_t* ans_name;
-    int i, j;
-    uint8_t address_octet;
+    int i;
     char* aliases;
     char* h_addr_list;
     char** h_addr_list_ptr;
     char** aliases_ptr;
-    int number_of_addresses;
     struct in_addr* addr_s;
 
 
@@ -318,7 +315,7 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
 
 
 size_t read_qname(const unsigned char* reader, char far** h_name) {
-    int i, j;
+    int i;
     unsigned char next_up;
     size_t sizeof_qname;
     size_t sizeof_h_name;
