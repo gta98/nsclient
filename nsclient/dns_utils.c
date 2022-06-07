@@ -11,7 +11,6 @@ struct hostent* dnsQuery(const char* hostname) {
     unsigned char* query;
     unsigned char* response;
     size_t sizeof_query, sizeof_response, sizeof_qname;
-  //  answer_t* ans;
 
     remoteHost = NULL;
     query = NULL;
@@ -316,7 +315,7 @@ int read_qname_wrapper(const unsigned char* reader, size_t sizeof_qname, size_t 
     }
     else if (rname_lbl_ptr == 0)
     {
-        for (int j = 0; j <= sizeof_qname; j++) {
+        for (j = 0; j <= sizeof_qname; j++) {
 
             name_frm_ptr[j] = response[sizeof(dns_header_t)+j];
         }
