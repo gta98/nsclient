@@ -365,17 +365,17 @@ void parseDnsHeaderFromResponse(dns_header_t* dns) {
     switch (dns->rcode) {
     case 0:
         break;
-    case 1: printd("Format error - The name server was unable to interpret the query\n");
+    case 1: printd("Badly formatted domain\n");
         break;
-    case 2: printd("Server failure - The name server was unable to process this query due to a problem with the name server.\n");
+    case 2: printd("Server failure\n");
         break;
-    case 3: printd("Name Error - Meaningful only for responses from an authoritative name server, this code signifies that the domain name referenced in the query does not exist.\n");
+    case 3: printd("Domain does not exist\n");
         break;
-    case 4: printd("Not Implemented - The name server does not support the requested kind of query\n");
+    case 4: printd("Unsupported query type\n");
         break;
-    case 5: printd("Refused - The name server refuses to perform the specified operation for policy reasons.\n");
+    case 5: printd("Query refused by server\n");
         break;
-    default: printd("Reserved for future use.\n");
+    default: printd("Reserved\n");
         break;
     }
 }
