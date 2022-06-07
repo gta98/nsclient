@@ -33,7 +33,7 @@ char far* revert_question_name(unsigned char* reader, unsigned char* response, i
 size_t change_question_name(const unsigned char* hostname, unsigned char* qname);
 int validateHost(const unsigned char* hostname);
 struct hostent* dnsQuery(const char* hostname);
-char* createDnsQueryBuf(const char* hostname, size_t* p_sizeof_query);
+char* createDnsQueryBuf(const char* hostname, size_t* p_sizeof_query, size_t* sizeof_qname);
 struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_reponse, size_t sizeof_qname);
 void printRemoteHost(struct hostent* remoteHost);
 void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname);

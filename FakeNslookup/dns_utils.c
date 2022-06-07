@@ -12,7 +12,6 @@ struct hostent* dnsQuery(const char* hostname) {
     unsigned char* response;
     size_t sizeof_query, sizeof_response, sizeof_qname;
   //  answer_t* ans;
-    unsigned char* reader;
 
     remoteHost = NULL;
     query = NULL;
@@ -115,7 +114,7 @@ char* createDnsQueryBuf(const char* hostname, size_t* sizeof_query, size_t* size
     dns->add_count = 0;
 
     qname = (char*) (buf + sizeof(dns_header_t));
-    *sizeof_qname = (sizeof(char))*change_question_name(hostname, qname);
+    *sizeof_qname = change_question_name(hostname, qname);
     *sizeof_query = (*sizeof_query) - (sizeof(char) * 1024) + *sizeof_qname;
 
     qinf = (question_t*)(buf + sizeof(dns_header_t) + *sizeof_qname);
@@ -183,9 +182,10 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     question_t* ques;
     name_t* ans_name;
     int i, j;
-    char* data_bla;
     uint8_t address_octet;
     char* aliases;
+    char* h_addr_list;
+    int number_of_addresses;
     struct in_addr* addr_s;
 
     printd("About to print response\n");
@@ -219,7 +219,11 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
 
     uint16_t rname_lbl_ptr = (reader[0] >> 6); // specify label of domain or pointer to name in response
     char* name_frm_ptr = (char*)malloc(sizeof_qname+1);
-    if (rname_lbl_ptr = 3) // if pointer to lable:
+    if (name_frm_ptr == NULL) {
+        free(remoteHost);
+        return NULL;
+    }
+    if (rname_lbl_ptr == 3) // if pointer to lable:
     {
         int rname_offset = reader[0];
         int k = 0;
@@ -230,12 +234,17 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
         rname_offset = rname_offset << 2;
         rname_offset+=addition;
         for (int j = 0; j <= sizeof_qname; j++) {
-                name_frm_ptr[j] = response[rname_offset];
-                rname_offset++;
+            if ((rname_offset >= sizeof_response) || (rname_offset < 0)) {
+                free(name_frm_ptr);
+                free(remoteHost);
+                return NULL;
+            }
+            name_frm_ptr[j] = response[rname_offset];
+            rname_offset++;
         }
     }
-    sizeof_qname = read_qname(name_frm_ptr, &remoteHost->h_name);
-
+    read_qname(name_frm_ptr, &remoteHost->h_name);
+    free(name_frm_ptr);
     reader += 2 * sizeof(char);
 
     uint16_t rtype = (reader[0] << 4) | (reader[1]);
@@ -247,16 +256,19 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     uint16_t rdlength = (reader[0] << 4) | (reader[1]);
     reader += 2 * sizeof(char);
     remoteHost->h_length =rdlength;
-    remoteHost->h_addrtype = rtype;
+    remoteHost->h_addrtype = AF_INET; //rtype;
 
     if (remoteHost->h_addrtype == 5) reader += (remoteHost->h_length)*sizeof(char);
     addr_s = (struct in_addr*)reader;
-    remoteHost->h_addr_list = inet_ntoa(*addr_s);
+    
+    // FIXME - Tom - what does h_addr_list need to be assigned with?
+    // in order for this assertion to pass
+    assert(addr_s->S_un.S_addr == *(u_long*)remoteHost->h_addr_list[0]);
 
     //printf("sizeof char: %d\n", sizeof(char));
     //printf("specifically size of response_t is:::::: %d\n", sizeof(response_t));
     //printf("total size of structs: %d\n", sizeof(dns_header_t) + sizeof_qname + sizeof(response_t));
-    printf("%s\n", remoteHost->h_addr_list);
+    printf("%s\n", remoteHost->h_addr_list[0]);
 
     return remoteHost;
 }
@@ -425,7 +437,7 @@ int removeSignificantBit(int num)
 {
     if (num <= 0)
     {
-        return;
+        return 0;
     }
     int r = num >> 1;
     r = r | (r >> 1);
@@ -448,8 +460,8 @@ void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* h
     if (remoteHostDebug != NULL) assertd(remoteHost != NULL);
     if (remoteHost != NULL) assertd(remoteHostDebug != NULL);
     if (remoteHost && remoteHostDebug) {
-
-        assertd(strcmp(remoteHost->h_name, *(remoteHostDebug->h_name)) == 0);
+        
+        assertd(strcmp(remoteHost->h_name, remoteHostDebug->h_name) == 0);
         assertd(remoteHost->h_length == remoteHostDebug->h_length);
         assertd(remoteHost->h_addrtype == remoteHostDebug->h_addrtype);
         for (i = 0; (remoteHost->h_addr_list[i] || remoteHostDebug->h_addr_list[i]); i++) {
