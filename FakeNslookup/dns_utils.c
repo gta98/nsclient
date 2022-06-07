@@ -272,7 +272,7 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     //h_addr_list_ptr = &h_addr_list;
     for (i = 0; i < h_addr_list_len; i++) h_addr_list[i] = reader[i];
     remoteHost->h_addr_list = h_addr_list_ptr;
-    assert(addr_s->S_un.S_addr == *(u_long*)remoteHost->h_addr_list[0]);
+    assertd(addr_s->S_un.S_addr == *(u_long*)remoteHost->h_addr_list[0]);
 
 
     return remoteHost;
