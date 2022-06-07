@@ -78,9 +78,8 @@ int main(const int argc, const char *argv[])
         }
 
         remoteHost = dnsQuery(hostname);
-        assertDnsQueryResultIsValid(remoteHost, hostname);
-
         printRemoteHost(remoteHost);
+        assertDnsQueryResultIsValid(remoteHost, hostname);
 
         if (remoteHost) free(remoteHost);
 
