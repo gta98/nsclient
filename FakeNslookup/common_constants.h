@@ -13,6 +13,7 @@
 #define SIZE_DNS_RESPONSE_BUF 65536
 
 #define STATUS_SUCCESS              0
+#define STATUS_ERROR                1
 #define STATUS_ERR_FILE_READ        1
 #define STATUS_ERR_MALLOC_BUF       2
 #define STATUS_ERR_MALLOC_BUF_ENC   3

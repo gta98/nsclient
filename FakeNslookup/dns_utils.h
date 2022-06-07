@@ -29,7 +29,6 @@ typedef struct DnsHeader {
 SOCKET sock;
 
 int removeSignificantBit(int num);
-char far* revert_question_name(unsigned char* reader, unsigned char* response, int* count);
 size_t change_question_name(const unsigned char* hostname, unsigned char* qname);
 int validateHost(const unsigned char* hostname);
 struct hostent* dnsQuery(const char* hostname);
@@ -37,8 +36,9 @@ char* createDnsQueryBuf(const char* hostname, size_t* p_sizeof_query, size_t* si
 struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof_reponse, size_t sizeof_qname);
 void printRemoteHost(struct hostent* remoteHost);
 void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname);
-char far* revert_question_name(unsigned char* reader, unsigned char* response, int* count);
 size_t read_qname(const unsigned char* reader, char far** h_name);
+int read_qname_wrapper(const unsigned char* reader, size_t sizeof_qname, size_t sizeof_response,
+    const unsigned char* response, struct hostent* remoteHost);
 void parseDnsHeaderFromResponse(dns_header_t* dns);
 
 typedef struct Name {
