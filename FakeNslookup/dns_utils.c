@@ -262,6 +262,7 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
             }
 #pragma warning( push )
 #pragma warning( disable : 6386 )
+            // doesn't seem to be a real issue here, so I suppressed it
             name_frm_ptr[j] = response[rname_offset];
 #pragma warning( pop )
             rname_offset++;
