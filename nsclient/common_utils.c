@@ -31,10 +31,32 @@ bool str_check_all(const unsigned char* s, bool (*is_char_condition)(const unsig
 }
 
 void printAsBytes(const unsigned char* s, size_t sizeof_s) {
+#if FLAG_DEBUG==1
 	int i;
 	printd("bytes([");
 	for (i = 0; i < sizeof_s - 1; i++)
 		printd("0x%x,", s[i]);
 	printd("0x%x", s[sizeof_s - 1]);
 	printd("])\n");
+#else
+	return;
+#endif
+}
+
+//this function was copied from https://kalkicode.com/remove-significant-set-bit-number
+int removeSignificantBit(int num) {
+	if (num <= 0)
+	{
+		return 0;
+	}
+	int r = num >> 1;
+	r = r | (r >> 1);
+	r = r | (r >> 2);
+	r = r | (r >> 4);
+	r = r | (r >> 8);
+	r = r | (r >> 16);
+	// Remove most significant bit
+	int value = r & num;
+	// Display calculated result
+	return value;
 }

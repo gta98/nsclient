@@ -229,7 +229,6 @@ struct hostent* parseDnsResponseBuf(const unsigned char* response, size_t sizeof
     reader += sizeof(dns_header_t);
     printAsBytes(reader, sizeof(response_t));
 
-
     reader += sizeof_qname;
     ques = (question_t*)reader;
     reader += sizeof(question_t);
@@ -317,8 +316,11 @@ int read_qname_wrapper(const unsigned char* reader, size_t sizeof_qname, size_t 
     else if (rname_lbl_ptr == 0)
     {
         for (int j = 0; j <= sizeof_qname; j++) {
-
+#pragma warning( push )
+#pragma warning( disable : 6386 )
+            // doesn't seem to be a real issue here, so I suppressed it
             name_frm_ptr[j] = response[sizeof(dns_header_t)+j];
+#pragma warning( pop )
         }
     }
     read_qname(name_frm_ptr, &remoteHost->h_name);
@@ -327,6 +329,13 @@ int read_qname_wrapper(const unsigned char* reader, size_t sizeof_qname, size_t 
 }
 
 size_t read_qname(const unsigned char* reader, char far** h_name) {
+    /*
+    * INPUT: "reader": pointer to location in which we can expect the hostname in the response
+    *                  we expect 3www6google3com0 style formatting
+    * INPUT: "h_name": pointer to pointer in which we want to store the extracted hostname
+    * OUTPUT: "h_name": will be in www.google.com format
+    * RETURN: size of name as stored within reader (3www6google3com0 -> 16) 
+    */
     int i;
     unsigned char next_up;
     size_t sizeof_qname;
@@ -388,25 +397,6 @@ void parseDnsHeaderFromResponse(dns_header_t* dns) {
 
 
 int validateHost(const unsigned char* _hostname) {
-    /*
-    * INPUT: hostname
-    * RETURN: STATUS_SUCCESS if hostname is valid, STATUS_ERR_BAD_NAME otherwise
-    * DESCRIPTION:
-    * Follows RFC 1035 specification.
-    * we consider hostname to be valid <=> hostname matches definition of <subdomain>
-    * We are intentionally ignoring the " " case
-    * Definitions, from the specification:
-    * Octet ::= 8 bits (1 char)
-    * <domain> ::= <subdomain> | " "
-    * <subdomain> ::= <label> | <subdomain> "." <label>
-    * <label> ::= <letter> [ [ <ldh-str> ] <let-dig> ]
-    * <ldh-str> ::= <let-dig-hyp> | <let-dig-hyp> <ldh-str>
-    * <let-dig-hyp> ::= <let-dig> | "-"
-    * <let-dig> ::= <letter> | <digit>
-    * <letter> ::= any one of the 52 alphabetic characters A through Z in
-    *              upper case and a through z in lower case
-    * <digit> ::= any one of the ten digits 0 through 9
-    */
     int i;
     char* label;
     char* hostname;
@@ -440,37 +430,35 @@ int validateHost(const unsigned char* _hostname) {
                 labels          63 octets or less
                And, from the definition <label>, it must have at least 1 letter (@ idx 0)
             */
-            free(hostname);
-            return STATUS_ERR_BAD_NAME;
+            goto validate_hostname_bad_name;
         }
         /* RFC 1035 states:
             <label> ::= <letter> [ [ <ldh-str> ] <let-dig> ]
         */
         if (!is_letter(label[0])) {
-            free(hostname);
-            return STATUS_ERR_BAD_NAME;
+            goto validate_hostname_bad_name;
         }
         if (!str_check_all(label, is_let_dig_hyp)) {
-            free(hostname);
-            return STATUS_ERR_BAD_NAME;
+            goto validate_hostname_bad_name;
         }
         if (!is_let_dig(label[label_length - 1])) {
-            free(hostname);
-            return STATUS_ERR_BAD_NAME;
+            goto validate_hostname_bad_name;
         }
         label = strtok(NULL, ".");
     }
 
     for (i = 0; i < length-1; i++) {
-        if ((hostname[i] == '.') && (hostname[i + 1] == '.')) {
-            free(hostname);
-            return STATUS_ERR_BAD_NAME;
+        if ((_hostname[i] == '.') && (_hostname[i + 1] == '.')) {
+            goto validate_hostname_bad_name;
         }
     }
 
     free(hostname);
-
     return STATUS_SUCCESS;
+
+    validate_hostname_bad_name:
+    free(hostname);
+    return STATUS_ERR_BAD_NAME;
 }
 
 void printRemoteHost(struct hostent* remoteHost) {
@@ -486,26 +474,6 @@ void printRemoteHost(struct hostent* remoteHost) {
     }
 }
 
-
-//this function was copied from https://kalkicode.com/remove-significant-set-bit-number
-
-int removeSignificantBit(int num)
-{
-    if (num <= 0)
-    {
-        return 0;
-    }
-    int r = num >> 1;
-    r = r | (r >> 1);
-    r = r | (r >> 2);
-    r = r | (r >> 4);
-    r = r | (r >> 8);
-    r = r | (r >> 16);
-    // Remove most significant bit
-    int value = r & num;
-    // Display calculated result
-    return value;
-}
 
 void assertDnsQueryResultIsValid(const struct hostent* remoteHost, const char* hostname) {
 #if FLAG_DEBUG == 1

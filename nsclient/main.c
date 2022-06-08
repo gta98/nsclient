@@ -7,6 +7,14 @@
 
 int main(const int argc, const char *argv[])
 {
+    /* 
+     * Main loop, as described in README.docx
+     * INPUT: argc: number of console arguments
+     * INPUT: argv: console arguments
+     * OUTPUT: command prompt, IP address of host requested by user, exits if “quit”
+     * RETURN: 0 if exited program cleanly (via "quit")
+     *         1 if could not connect to DNS server
+     */
     WSADATA wsaData;
     const char* remote_addr;
     struct hostent* remoteHost;
