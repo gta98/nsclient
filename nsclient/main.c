@@ -20,11 +20,11 @@ int main(const int argc, const char *argv[])
     struct hostent* remoteHost;
     int i, status;
     char hostname[MAX_HOSTNAME_LENGTH_INPUT];
-#if FLAG_DEBUG == 1
+#if FLAG_DEBUG_MEMORY == 1
     _CrtMemState state;
 #endif
 
-#if FLAG_DEBUG == 1
+#if FLAG_DEBUG_MEMORY == 1
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_DEBUG);
     _CrtMemCheckpoint(&state);
 #endif
@@ -104,7 +104,7 @@ int main(const int argc, const char *argv[])
     }
 
     if (sock) closesocket(sock);
-#if FLAG_DEBUG == 1
+#if FLAG_DEBUG_MEMORY == 1
     _CrtMemDumpAllObjectsSince(&state);
 #endif
     return 0;

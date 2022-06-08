@@ -3,6 +3,7 @@
 #define FLAG_DEBUG                 0
 #define FLAG_DEBUG_PRINTS          0 && FLAG_DEBUG
 #define FLAG_DEBUG_ASSERTIONS      0 && FLAG_DEBUG
+#define FLAG_DEBUG_MEMORY          0 && FLAG_DEBUG
 #define FLAG_SKIP_HOSTNAME         0
 #define FLAG_REVERT_DNS_IF_INVALID 1
 #define FLAG_REAL_NSLOOKUP         0
