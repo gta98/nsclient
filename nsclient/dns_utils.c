@@ -46,7 +46,7 @@ struct hostent* dnsQuery(const char* hostname) {
     }
     status = recvfrom(sock, response, (int)sizeof_response, 0, NULL, 0);
     if (status == SOCKET_ERROR) {
-        printd("Failure in receiving response from DNS server - status %d\n last error %ld", status, WSAGetLastError());
+        printf("Failure in receiving response from DNS server - status %d\n last WSA error %ld\n", status, WSAGetLastError());
         goto dnsQueryFailure;
     }
     sizeof_response = status; /* actual response size */
